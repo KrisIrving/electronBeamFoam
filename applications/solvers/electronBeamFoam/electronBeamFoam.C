@@ -273,21 +273,21 @@ int main(int argc, char *argv[])
                 continue;
             }
 
+            // UEqn must remain in the PIMPLE-loop scope because pEqn.H
+            // accesses UEqn.A() and UEqn.H() later in the same iteration.
+            const auto profileMomentumStart = profileNow();
+
+            #include "UEqn.H"
+
+            if (mthd.valid())
             {
-                const auto profileMomentumStart = profileNow();
+                mthd->solve(phi, U);
+            }
 
-                #include "UEqn.H"
-
-                if (mthd.valid())
-                {
-                    mthd->solve(phi, U);
-                }
-
-                if (performanceProfiling)
-                {
-                    profileMomentumWall +=
-                        profileElapsed(profileMomentumStart);
-                }
+            if (performanceProfiling)
+            {
+                profileMomentumWall +=
+                    profileElapsed(profileMomentumStart);
             }
 
             {
