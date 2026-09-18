@@ -45,7 +45,7 @@ if (meltPoolDiagnosticsEnabled && runTime.writeTime())
         ++meltCellCount;
 
         const scalar halfCell =
-            0.5*cbrt(max(cellVolumes[celli], scalar(VSMALL)));
+            0.5*Foam::cbrt(max(cellVolumes[celli], scalar(VSMALL)));
 
         const vector rel =
             cellCentres[celli] - meltPoolReferenceSurfacePoint;
