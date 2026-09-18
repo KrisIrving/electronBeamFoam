@@ -117,3 +117,39 @@ hit-map cache age
 This optimisation is deliberately on `develop` until a cached-vs-reference
 100 microsecond comparison confirms that the melt-pool/source diagnostics are
 unchanged within an acceptable tolerance and wall-clock time improves.
+
+
+## Cache benchmark result
+
+The first cache benchmark was run on 2026-09-18 with the same 100 microsecond
+single-track case and 16 MPI ranks used for the validated no-cache baseline.
+
+Reference (retrace every source update):
+
+```text
+ClockTime = 991 s
+solver time steps = 1600
+```
+
+Cache enabled with `multiRayRetraceInterval 10` and
+`multiRayRetraceDistanceFactor 0.05`:
+
+```text
+ClockTime = 1025 s
+solver time steps = 1665
+```
+
+The cached run was therefore about 3.43% slower overall and required about
+4.06% more CFD time steps. Normalised by the number of time steps, the cached
+run was only about 0.61% faster per step. This indicates that the 60-beamlet
+first-hit trace is not a dominant wall-clock cost in this case, while stale
+surface maps can perturb the coupled melt-pool evolution enough to change the
+adaptive time-step history.
+
+At 100 microseconds, both runs still conserved absorbed power to roundoff and
+all 60 beamlets hit metal, but the cached first-hit extrema differed from the
+fully retraced reference by one local mesh increment in some sectors.
+
+Decision: keep the cache implementation available for controlled experiments,
+but keep `multiRayCacheEnabled false` in the tutorials and use the fully
+retraced algorithm as the default/reference model.

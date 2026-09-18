@@ -50,7 +50,7 @@ multiRayMissAction     skip;
 // reference algorithm exactly. With caching enabled, retrace at least every
 // N source updates, or sooner when the beam moves by the specified fraction
 // of beamRadius.
-multiRayCacheEnabled          true;
+multiRayCacheEnabled          false;
 multiRayRetraceInterval       10;
 multiRayRetraceDistanceFactor 0.05;
 
