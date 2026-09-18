@@ -1,0 +1,29 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| electronBeamFoam: EPBF physical-model switches                            |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      EPBFPhysicsProperties;
+}
+
+// The secondary VOF phase is a numerical void. It is not a continuum
+// rarefied-gas model of the vacuum chamber.
+vacuumModel     numericalVoid;
+
+// Physics used by the EPBF melt-pool model.
+radiation       true;
+evaporation     true;
+recoilPressure  true;
+marangoni       true;
+surfaceTension  true;
+gravity         true;
+
+// Keep disabled unless an electromagnetic model is intentionally configured
+// in transportProperties.
+electromagnetics false;
+
+// ************************************************************************* //

@@ -23,7 +23,11 @@ nHatM = gradAlpha/(mag(gradAlpha) + deltaN);
 nHatM.correctBoundaryConditions();  // ADDED
 
 Marangoni =
-    epsilon1*Marangoni_Constant*(gradT - nHatM*(nHatM & gradT))*mag(gradAlpha);
+    marangoniScale
+   *epsilon1
+   *Marangoni_Constant
+   *(gradT - nHatM*(nHatM & gradT))
+   *mag(gradAlpha);
 
 const scalar Tliquidus1Value = Tliquidus1.value();
 const scalarField& TI = T;
@@ -49,7 +53,7 @@ pSat = p0*Foam::exp(LatentHeatVap*Mm*((T - Tvap)/(R*T*Tvap)));
 pSat.correctBoundaryConditions();
 
 // Net recoil pressure above the chamber background pressure.
-pVap = recoilCoefficient*max
+pVap = recoilPressureScale*recoilCoefficient*max
 (
     pSat - pAmbient,
     dimensionedScalar("zeroPressure", p0.dimensions(), 0.0)
@@ -92,7 +96,9 @@ if (pimple.momentumPredictor())
         fvc::reconstruct
         (
             (
-                mixture.surfaceTensionForce()*fvc::interpolate(damper)
+                surfaceTensionScale
+               *mixture.surfaceTensionForce()
+               *fvc::interpolate(damper)
                 + (fvc::interpolate(pVap)
                     *fvc::snGrad(alpha1)
                     *fvc::interpolate(damper))

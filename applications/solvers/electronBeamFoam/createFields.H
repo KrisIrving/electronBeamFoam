@@ -99,6 +99,231 @@ IOdictionary transportProperties
     )
 );
 
+// -------------------------------------------------------------------------
+// EPBF-specific physics configuration.
+//
+// The vacuum phase is intentionally a numerical void: it is retained by the
+// VOF solver for interface tracking and pressure coupling, but it is not
+// interpreted as a continuum model of the rarefied chamber gas.
+// -------------------------------------------------------------------------
+IOdictionary epbfPhysicsProperties
+(
+    IOobject
+    (
+        "EPBFPhysicsProperties",
+        runTime.constant(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::NO_WRITE
+    )
+);
+
+const word vacuumModel
+(
+    epbfPhysicsProperties.lookupOrDefault<word>
+    (
+        "vacuumModel",
+        "numericalVoid"
+    )
+);
+
+if (vacuumModel != "numericalVoid")
+{
+    FatalErrorInFunction
+        << "Unsupported vacuumModel '" << vacuumModel << "'. "
+        << "electronBeamFoam currently supports only 'numericalVoid': "
+        << "the VOF secondary phase is a numerical void, not a physical "
+        << "continuum chamber gas."
+        << exit(FatalError);
+}
+
+const Switch radiationEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("radiation", true)
+);
+const Switch evaporationEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("evaporation", true)
+);
+const Switch recoilPressureEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("recoilPressure", true)
+);
+const Switch marangoniEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("marangoni", true)
+);
+const Switch gravityEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("gravity", true)
+);
+const Switch surfaceTensionEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("surfaceTension", true)
+);
+const Switch epbfElectromagneticsEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>("electromagnetics", false)
+);
+
+const scalar radiationScale = radiationEnabled ? 1.0 : 0.0;
+const scalar evaporationScale = evaporationEnabled ? 1.0 : 0.0;
+const scalar recoilPressureScale = recoilPressureEnabled ? 1.0 : 0.0;
+const scalar marangoniScale = marangoniEnabled ? 1.0 : 0.0;
+const scalar surfaceTensionScale = surfaceTensionEnabled ? 1.0 : 0.0;
+
+Info<< "EPBF physics configuration" << nl
+    << "    vacuumModel          = " << vacuumModel << nl
+    << "    radiation            = " << radiationEnabled << nl
+    << "    evaporation          = " << evaporationEnabled << nl
+    << "    recoilPressure       = " << recoilPressureEnabled << nl
+    << "    Marangoni             = " << marangoniEnabled << nl
+    << "    gravity               = " << gravityEnabled << nl
+    << "    surfaceTension        = " << surfaceTensionEnabled << nl
+    << "    electromagnetics      = " << epbfElectromagneticsEnabled
+    << endl;
+
+// -------------------------------------------------------------------------
+// Melt-pool diagnostics. Directions are user-defined so the same code works
+// for stationary spots, single tracks and arbitrary multi-track cases.
+// -------------------------------------------------------------------------
+IOdictionary meltPoolDiagnosticsProperties
+(
+    IOobject
+    (
+        "MeltPoolDiagnosticsProperties",
+        runTime.constant(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::NO_WRITE
+    )
+);
+
+const Switch meltPoolDiagnosticsEnabled
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<Switch>("enabled", true)
+);
+const Switch meltPoolWriteCsv
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<Switch>("writeCSV", true)
+);
+
+const scalar meltPoolMetalFractionThreshold =
+    meltPoolDiagnosticsProperties.lookupOrDefault<scalar>
+    (
+        "metalFractionThreshold",
+        0.5
+    );
+
+const scalar meltPoolLiquidFractionThreshold =
+    meltPoolDiagnosticsProperties.lookupOrDefault<scalar>
+    (
+        "liquidFractionThreshold",
+        0.5
+    );
+
+vector meltPoolLengthDirection
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<vector>
+    (
+        "lengthDirection",
+        vector(1, 0, 0)
+    )
+);
+
+vector meltPoolWidthDirection
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<vector>
+    (
+        "widthDirection",
+        vector(0, 0, 1)
+    )
+);
+
+vector meltPoolDepthDirection
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<vector>
+    (
+        "depthDirection",
+        vector(0, 1, 0)
+    )
+);
+
+const point meltPoolReferenceSurfacePoint
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<vector>
+    (
+        "referenceSurfacePoint",
+        vector::zero
+    )
+);
+
+const fileName meltPoolCsvFile
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<fileName>
+    (
+        "csvFile",
+        "meltPool.csv"
+    )
+);
+
+auto normaliseDiagnosticDirection =
+[]
+(
+    vector& direction,
+    const word& directionName
+)
+{
+    const scalar m = mag(direction);
+
+    if (m <= SMALL)
+    {
+        FatalErrorInFunction
+            << directionName << " must be non-zero"
+            << exit(FatalError);
+    }
+
+    direction /= m;
+};
+
+normaliseDiagnosticDirection
+(
+    meltPoolLengthDirection,
+    "lengthDirection"
+);
+normaliseDiagnosticDirection
+(
+    meltPoolWidthDirection,
+    "widthDirection"
+);
+normaliseDiagnosticDirection
+(
+    meltPoolDepthDirection,
+    "depthDirection"
+);
+
+if
+(
+    mag(meltPoolLengthDirection & meltPoolWidthDirection) > 1e-6
+ || mag(meltPoolLengthDirection & meltPoolDepthDirection) > 1e-6
+ || mag(meltPoolWidthDirection & meltPoolDepthDirection) > 1e-6
+)
+{
+    FatalErrorInFunction
+        << "Melt-pool diagnostic directions must be mutually orthogonal."
+        << exit(FatalError);
+}
+
+Info<< "Melt-pool diagnostics" << nl
+    << "    enabled               = " << meltPoolDiagnosticsEnabled << nl
+    << "    metal threshold       = " << meltPoolMetalFractionThreshold << nl
+    << "    liquid threshold      = " << meltPoolLiquidFractionThreshold << nl
+    << "    length direction      = " << meltPoolLengthDirection << nl
+    << "    width direction       = " << meltPoolWidthDirection << nl
+    << "    depth direction       = " << meltPoolDepthDirection << nl
+    << "    reference surface     = " << meltPoolReferenceSurfacePoint
+    << endl;
+
 const word interfaceTrackingScheme
 (
     transportProperties.lookup("interfaceTrackingScheme")
@@ -808,7 +1033,11 @@ autoPtr<transportModelType> turbulence
 
 autoPtr<mthdModel> mthd(nullptr);
 
-if (mthdModel::electromagneticsEnabled(mesh, "transportProperties"))
+if
+(
+    epbfElectromagneticsEnabled
+ && mthdModel::electromagneticsEnabled(mesh, "transportProperties")
+)
 {
     mthd.reset(new mthdModel(mesh, "transportProperties"));
 }

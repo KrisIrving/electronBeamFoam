@@ -151,8 +151,15 @@
         gh = epsilon1mask*(g & mesh.C());
         ghf = fvc::interpolate(epsilon1mask)*(g & mesh.Cf());
     }
-    else{
+    else
+    {
         gh = (g & mesh.C());
         ghf = (g & mesh.Cf());
+    }
+
+    if (!gravityEnabled)
+    {
+        gh *= 0.0;
+        ghf *= 0.0;
     }
 }

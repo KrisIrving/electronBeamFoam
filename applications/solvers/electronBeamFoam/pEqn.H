@@ -28,7 +28,9 @@
     surfaceScalarField phig
     (
         (
-            mixture.surfaceTensionForce()*fvc::interpolate(damper)
+            surfaceTensionScale
+           *mixture.surfaceTensionForce()
+           *fvc::interpolate(damper)
           +(fvc::interpolate(pVap)*fvc::snGrad(alpha1)*fvc::interpolate(damper))
           - ghf*fvc::snGrad(rho*rhok)
         )*rAUf*mesh.magSf()

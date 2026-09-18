@@ -11,6 +11,7 @@ NPROCS="${NPROCS:-32}"
 # Fresh initial field directory. Remove stale serial reconstruction
 # times as well, otherwise ParaView can mix data from previous runs.
 rm -rf 0 processor*
+rm -rf postProcessing
 rm -f case.foam
 foamListTimes -rm -noZero > log.cleanTimes 2>&1 || true
 cp -r initial 0

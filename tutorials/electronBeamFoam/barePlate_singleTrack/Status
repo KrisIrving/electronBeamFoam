@@ -33,3 +33,11 @@ printf 'Latest pressure share  : '
 grep '    pressure             =' "$LOG" | tail -1 || true
 printf 'Latest beam share      : '
 grep 'electron beam' "$LOG" | tail -1 || true
+
+printf 'Latest melt-pool       : '
+grep -A8 '^Melt-pool diagnostics' "$LOG" | tail -9 | tr '\n' ' ' || true
+echo
+if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
+    printf 'Latest melt-pool CSV   : '
+    tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv || true
+fi

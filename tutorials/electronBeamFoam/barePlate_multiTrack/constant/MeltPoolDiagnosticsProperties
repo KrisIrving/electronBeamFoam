@@ -1,0 +1,33 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| electronBeamFoam: quantitative melt-pool diagnostics                       |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      MeltPoolDiagnosticsProperties;
+}
+
+enabled                 true;
+writeCSV                true;
+
+// A melt-pool cell must satisfy BOTH thresholds.
+metalFractionThreshold  0.5;
+liquidFractionThreshold 0.5;
+
+// Coordinate convention for the current bare-plate mesh:
+// x = scan/length direction
+// y = beam penetration/depth direction
+// z = transverse/width direction
+lengthDirection         (1 0 0);
+widthDirection          (0 0 1);
+depthDirection          (0 1 0);
+
+// Initial metal-vacuum surface is y = 0.1 mm.
+referenceSurfacePoint   (0 0.0001 0);
+
+csvFile                 meltPool.csv;
+
+// ************************************************************************* //

@@ -34,7 +34,9 @@
         // saturation pressure minus ambient metal-vapour partial pressure.
         // Do not replace p0 by the EPBF chamber pressure.
         Qv =
-            evaporationCoefficient*LatentHeatVap*Mm
+            evaporationScale
+           *evaporationCoefficient
+           *LatentHeatVap*Mm
            *max
             (
                 pSat - pVaporAmbient,
@@ -44,8 +46,15 @@
 
         Qv.correctBoundaryConditions();
 
-        const volScalarField Qrad_expl (SB*em*(Foam::pow(TRef,4) + 3*Foam::pow(T,4)));
-        const volScalarField Qrad_inpl (-(4*SB*em*Foam::pow(T,3)));
+        const volScalarField Qrad_expl
+        (
+            radiationScale
+           *SB*em*(Foam::pow(TRef,4) + 3*Foam::pow(T,4))
+        );
+        const volScalarField Qrad_inpl
+        (
+            -radiationScale*(4*SB*em*Foam::pow(T,3))
+        );
 
         if (damperSwitch)
         {

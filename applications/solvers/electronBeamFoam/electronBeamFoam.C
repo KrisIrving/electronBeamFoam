@@ -68,6 +68,8 @@ Authors
 #include "mthdModel.H"
 
 #include <chrono>
+#include <fstream>
+#include <iomanip>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -342,6 +344,8 @@ int main(int argc, char *argv[])
 
         const bool profileReportNow =
             performanceProfiling && runTime.writeTime();
+
+        #include "meltPoolDiagnostics.H"
 
         const auto profileWriteStart = profileNow();
         runTime.write();
