@@ -36,3 +36,11 @@ To reconstruct an existing completed decomposed case manually:
 ```
 
 The processor directories are deliberately retained after reconstruction.
+
+
+## Validation status
+
+Validated on 2026-09-18 with the completed parallel
+`barePlate_singleTrack` dynamic-refinement result. The `Reconstruct` script
+completed without error, successfully rebuilding the topology-changing mesh,
+reconstructing the fields and creating `case.foam` for ParaView.
