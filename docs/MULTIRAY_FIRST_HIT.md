@@ -148,7 +148,8 @@ adaptive time-step history.
 
 At 100 microseconds, both runs still conserved absorbed power to roundoff and
 all 60 beamlets hit metal, but the cached first-hit extrema differed from the
-fully retraced reference by one local mesh increment in some sectors.
+fully retraced reference by roughly one to two local mesh increments in some
+sectors.
 
 Decision: keep the cache implementation available for controlled experiments,
 but keep `multiRayCacheEnabled false` in the tutorials and use the fully
