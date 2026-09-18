@@ -10,8 +10,11 @@ NPROCS="${NPROCS:-32}"
 
 python3 generateSerpentinePath.py > log.generatePath 2>&1
 
-# Fresh initial field directory
+# Fresh initial field directory. Remove stale serial reconstruction
+# times as well, otherwise ParaView can mix data from previous runs.
 rm -rf 0 processor*
+rm -f case.foam
+foamListTimes -rm -noZero > log.cleanTimes 2>&1 || true
 cp -r initial 0
 find 0 -name "*.orig" -exec bash -c 'cp "$0" "${0%.orig}"' {} \;
 
@@ -38,3 +41,9 @@ fi
 
 mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel \
     > log.electronBeamFoam 2>&1
+
+# Reconstruct dynamic mesh + fields after a successful solver run.
+# Set AUTO_RECONSTRUCT=0 to keep the decomposed result only.
+if [ "${AUTO_RECONSTRUCT:-1}" = "1" ]; then
+    ./Reconstruct > log.Reconstruct 2>&1
+fi
