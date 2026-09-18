@@ -45,3 +45,38 @@ deposited-power error should be near roundoff.
 
 This commit intentionally does not yet cache the hit map. Correctness should be
 verified before adding retrace/caching optimisation.
+
+
+## Validation status
+
+Validated on 2026-09-18 with OpenFOAM v2512 using the
+`barePlate_singleTrack` tutorial on 16 MPI ranks.
+
+Test horizon: 100 microseconds.
+
+Observed diagnostics at 100 microseconds:
+
+```text
+surface tracking     = multiRayFirstHit
+beamlets             = 60
+beamlets hit metal   = 60
+hit power fraction   = 1
+first-hit mean dist  = 5.426733688e-05 m
+first-hit min dist   = 3.437493e-05 m
+first-hit max dist   = 6.874993e-05 m
+incident power       = 156 W
+requested absorbed   = 132.6 W
+effective absorbed   = 132.6 W
+integrated deposited = 132.6 W
+power error          = 3.694822226e-13 W
+```
+
+The run completed normally with `End` after about 991 s wall-clock time.
+Across all five write times (20, 40, 60, 80 and 100 microseconds), all
+60 beamlets hit metal and the hit power fraction remained 1. The first-hit
+distance spread increased as the free surface evolved, which is the expected
+qualitative behaviour of a local multi-ray surface map.
+
+The build completed successfully on OpenFOAM v2512. Remaining compiler
+messages are pre-existing/non-fatal warnings (for example the dependency
+warning involving `alphaEqn.H` and unused recoil/evaporation coefficients).
