@@ -12,6 +12,10 @@ FoamFile
 
 PowderSim              false;
 
+// This moving-track tutorial is a calibration scaffold. The default source
+// parameters are inherited from the validated stationary-spot case and are
+// NOT claimed to be a calibrated Ti-6Al-4V EPBF parameter set.
+
 // surfaceGaussian | volumetricGaussian | tabulatedMC (reserved)
 depositionModel        volumetricGaussian;
 

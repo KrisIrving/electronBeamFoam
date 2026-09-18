@@ -8,6 +8,24 @@ set -euo pipefail
 
 NPROCS="${NPROCS:-32}"
 
+# Preserve tracked runtime-control files so environment-driven parameter sweeps
+# leave the Git worktree clean after the run.
+RUN_INPUT_BACKUP="$(mktemp -d)"
+cp system/controlDict "$RUN_INPUT_BACKUP/controlDict"
+cp constant/timeVsBeamPosition "$RUN_INPUT_BACKUP/timeVsBeamPosition"
+cp constant/timeVsBeamPower "$RUN_INPUT_BACKUP/timeVsBeamPower"
+
+restore_run_inputs()
+{
+    cp "$RUN_INPUT_BACKUP/controlDict" system/controlDict
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPosition" constant/timeVsBeamPosition
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPower" constant/timeVsBeamPower
+    rm -rf "$RUN_INPUT_BACKUP"
+}
+trap restore_run_inputs EXIT INT TERM
+
+python3 generateMovingSingleTrack.py > log.generateTrack 2>&1
+
 # Fresh initial field directory. Remove stale serial reconstruction
 # times as well, otherwise ParaView can mix data from previous runs.
 rm -rf 0 processor*

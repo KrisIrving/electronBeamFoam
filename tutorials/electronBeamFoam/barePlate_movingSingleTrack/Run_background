@@ -1,7 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Launch a quiet detached run. Override e.g. NPROCS=48 ./Run_background
+# Launch a quiet detached run.
+# Examples:
+#   NPROCS=16 ./Run_background
+#   BEAM_POWER=180 SCAN_SPEED=0.7 NPROCS=32 ./Run_background
+# All custom track variables are inherited by Allrun_parallel.
 NPROCS="${NPROCS:-32}"
 nohup env NPROCS="$NPROCS" ./Allrun_parallel > log.Allrun 2>&1 &
 echo $! > run.pid

@@ -5,6 +5,11 @@ if [ ! -f "$LOG" ]; then
     echo "No $LOG yet."
     exit 0
 fi
+if [ -f log.generateTrack ]; then
+    echo '--- Moving-track input ---'
+    cat log.generateTrack
+    echo '--------------------------'
+fi
 printf 'Latest simulation time: '
 grep '^[[:space:]]*Time = ' "$LOG" | tail -1 || true
 printf 'Latest execution time : '
