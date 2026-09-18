@@ -1,0 +1,17 @@
+#!/bin/bash
+# Compact status only; does not follow the full solver output.
+LOG=log.electronBeamFoam
+if [ ! -f "$LOG" ]; then
+    echo "No $LOG yet."
+    exit 0
+fi
+printf 'Latest simulation time: '
+grep '^[[:space:]]*Time = ' "$LOG" | tail -1 || true
+printf 'Latest execution time : '
+grep 'ExecutionTime = ' "$LOG" | tail -1 || true
+printf 'Latest deltaT         : '
+grep 'deltaT = ' "$LOG" | tail -1 || true
+printf 'Latest first-hit      : '
+grep 'first-hit distance' "$LOG" | tail -1 || true
+printf 'Latest power error    : '
+grep 'power error' "$LOG" | tail -1 || true

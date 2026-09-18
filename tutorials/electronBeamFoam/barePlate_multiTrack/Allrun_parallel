@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+
+# Quiet MPI run for electronBeamFoam.
+# Usage:
+#   NPROCS=32 ./Allrun_parallel
+# All OpenFOAM output is written to log.* files, not the terminal.
+
+NPROCS="${NPROCS:-32}"
+
+python3 generateSerpentinePath.py > log.generatePath 2>&1
+
+# Fresh initial field directory
+rm -rf 0 processor*
+cp -r initial 0
+find 0 -name "*.orig" -exec bash -c 'cp "$0" "${0%.orig}"' {} \;
+
+# Keep decomposeParDict and mpirun consistent.
+foamDictionary system/decomposeParDict \
+    -entry numberOfSubdomains -set "$NPROCS" \
+    > log.setNProcs 2>&1
+
+blockMesh > log.blockMesh 2>&1
+setFields > log.setFields 2>&1
+decomposePar -force > log.decomposePar 2>&1
+
+# One MPI rank per physical core. Keep OpenMP libraries single-threaded to
+# avoid accidental oversubscription.  The user's workstation has two sockets
+# with 24 physical cores/socket.  For even NPROCS <= 48, distribute ranks
+# symmetrically across both sockets to reduce NUMA imbalance.
+export OMP_NUM_THREADS=1
+
+MPI_ARGS=()
+if [ "${NUMA_BIND:-1}" = "1" ] && [ "$NPROCS" -le 48 ] && [ $((NPROCS % 2)) -eq 0 ]; then
+    PPR=$((NPROCS / 2))
+    MPI_ARGS+=(--bind-to core --map-by "ppr:${PPR}:socket")
+fi
+
+mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel \
+    > log.electronBeamFoam 2>&1
