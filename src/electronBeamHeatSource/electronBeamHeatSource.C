@@ -107,6 +107,25 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
     (
         lookupOrDefault<word>("multiRayMissAction", "skip")
     ),
+    multiRayCacheEnabled_
+    (
+        lookupOrDefault<Switch>("multiRayCacheEnabled", false)
+    ),
+    multiRayRetraceInterval_
+    (
+        lookupOrDefault<label>("multiRayRetraceInterval", 10)
+    ),
+    multiRayRetraceDistanceFactor_
+    (
+        lookupOrDefault<scalar>("multiRayRetraceDistanceFactor", 0.05)
+    ),
+    cachedHitPositions_(),
+    cachedHitDistances_(),
+    cachedHitFound_(),
+    cachedBeamletPowerFractions_(),
+    cachedBeamPosition_(vector::zero),
+    multiRayStepsSinceTrace_(0),
+    multiRayCacheValid_(false),
     lastFirstHitPosition_(vector::zero),
     lastFirstHitDistance_(GREAT),
     lastFirstHitFound_(false),
@@ -115,6 +134,8 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
     lastBeamletHitPowerFraction_(0.0),
     lastFirstHitMinDistance_(GREAT),
     lastFirstHitMaxDistance_(-GREAT),
+    lastMultiRayRetraced_(false),
+    lastMultiRayCacheAge_(0),
     timeVsBeamPosition_(subDict("timeVsBeamPosition")),
     timeVsBeamPower_(subDict("timeVsBeamPower")),
     lastIncidentPower_(0.0),
@@ -189,6 +210,18 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
             << "beamletMaxTrackHops must be >= 1" << exit(FatalError);
     }
 
+    if (multiRayRetraceInterval_ < 1)
+    {
+        FatalErrorInFunction
+            << "multiRayRetraceInterval must be >= 1" << exit(FatalError);
+    }
+
+    if (multiRayRetraceDistanceFactor_ < 0.0)
+    {
+        FatalErrorInFunction
+            << "multiRayRetraceDistanceFactor must be >= 0" << exit(FatalError);
+    }
+
     if
     (
         multiRayMissAction_ != "skip"
@@ -233,6 +266,10 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
         << "    beamletAngularBins   = " << beamletAngularBins_ << nl
         << "    beamletRadiusFactor  = " << beamletRadiusFactor_ << nl
         << "    multiRayMissAction   = " << multiRayMissAction_ << nl
+        << "    multiRayCacheEnabled = " << multiRayCacheEnabled_ << nl
+        << "    retraceInterval      = " << multiRayRetraceInterval_ << nl
+        << "    retraceDistance      = "
+        << multiRayRetraceDistanceFactor_ << " * beamRadius" << nl
         << "    PowderSim            = " << powderSim_ << endl;
 }
 
@@ -578,6 +615,8 @@ void electronBeamHeatSource::updateDeposition
     lastBeamletHitPowerFraction_ = 0.0;
     lastFirstHitMinDistance_ = GREAT;
     lastFirstHitMaxDistance_ = -GREAT;
+    lastMultiRayRetraced_ = false;
+    lastMultiRayCacheAge_ = multiRayStepsSinceTrace_;
 
     deposition_ = dimensionedScalar
     (
@@ -658,15 +697,64 @@ void electronBeamHeatSource::updateDeposition
      && surfaceTrackingMode_ == "multiRayFirstHit"
     )
     {
-        traceMultiRayFirstHits
+        bool retrace = !multiRayCacheEnabled_ || !multiRayCacheValid_;
+
+        if
         (
-            alphaMetal,
-            beamPosition,
-            multiHitPositions,
-            multiHitDistances,
-            multiHitFound,
-            beamletPowerFractions
-        );
+            multiRayCacheEnabled_
+         && multiRayCacheValid_
+         && multiRayStepsSinceTrace_ >= multiRayRetraceInterval_
+        )
+        {
+            retrace = true;
+        }
+
+        if
+        (
+            multiRayCacheEnabled_
+         && multiRayCacheValid_
+         && multiRayRetraceDistanceFactor_ > 0.0
+         && mag(beamPosition - cachedBeamPosition_)
+            >= multiRayRetraceDistanceFactor_*beamRadius_
+        )
+        {
+            retrace = true;
+        }
+
+        if (retrace)
+        {
+            traceMultiRayFirstHits
+            (
+                alphaMetal,
+                beamPosition,
+                multiHitPositions,
+                multiHitDistances,
+                multiHitFound,
+                beamletPowerFractions
+            );
+
+            cachedHitPositions_ = multiHitPositions;
+            cachedHitDistances_ = multiHitDistances;
+            cachedHitFound_ = multiHitFound;
+            cachedBeamletPowerFractions_ = beamletPowerFractions;
+            cachedBeamPosition_ = beamPosition;
+            multiRayStepsSinceTrace_ = 0;
+            multiRayCacheValid_ = true;
+            lastMultiRayRetraced_ = true;
+            lastMultiRayCacheAge_ = 0;
+        }
+        else
+        {
+            multiHitPositions = cachedHitPositions_;
+            multiHitDistances = cachedHitDistances_;
+            multiHitFound = cachedHitFound_;
+            beamletPowerFractions = cachedBeamletPowerFractions_;
+            lastMultiRayRetraced_ = false;
+            lastMultiRayCacheAge_ = multiRayStepsSinceTrace_;
+        }
+
+        // Counts CFD source updates since the most recent ray trace.
+        ++multiRayStepsSinceTrace_;
 
         lastBeamletCount_ = multiHitFound.size();
 
@@ -951,6 +1039,10 @@ void electronBeamHeatSource::updateDeposition
                 << "    beamlets hit metal   = " << lastBeamletHitCount_ << nl
                 << "    hit power fraction   = "
                 << lastBeamletHitPowerFraction_ << nl
+                << "    hit-map retraced     = "
+                << lastMultiRayRetraced_ << nl
+                << "    hit-map cache age    = "
+                << lastMultiRayCacheAge_ << " updates" << nl
                 << "    first-hit mean dist  = "
                 << lastFirstHitDistance_ << " m" << nl
                 << "    first-hit min dist   = "

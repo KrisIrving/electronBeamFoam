@@ -48,6 +48,19 @@ class electronBeamHeatSource
     label beamletMaxTrackHops_;
     word multiRayMissAction_;
 
+    // Optional cache for the expensive Lagrangian first-hit map.
+    Switch multiRayCacheEnabled_;
+    label multiRayRetraceInterval_;
+    scalar multiRayRetraceDistanceFactor_;
+
+    pointField cachedHitPositions_;
+    scalarField cachedHitDistances_;
+    labelList cachedHitFound_;
+    scalarField cachedBeamletPowerFractions_;
+    vector cachedBeamPosition_;
+    label multiRayStepsSinceTrace_;
+    Switch multiRayCacheValid_;
+
     vector lastFirstHitPosition_;
     scalar lastFirstHitDistance_;
     Switch lastFirstHitFound_;
@@ -57,6 +70,8 @@ class electronBeamHeatSource
     scalar lastBeamletHitPowerFraction_;
     scalar lastFirstHitMinDistance_;
     scalar lastFirstHitMaxDistance_;
+    Switch lastMultiRayRetraced_;
+    label lastMultiRayCacheAge_;
 
     interpolationTable<vector> timeVsBeamPosition_;
     interpolationTable<scalar> timeVsBeamPower_;
@@ -117,6 +132,8 @@ public:
     }
     scalar lastFirstHitMinDistance() const { return lastFirstHitMinDistance_; }
     scalar lastFirstHitMaxDistance() const { return lastFirstHitMaxDistance_; }
+    bool lastMultiRayRetraced() const { return lastMultiRayRetraced_; }
+    label lastMultiRayCacheAge() const { return lastMultiRayCacheAge_; }
 
     void updateDeposition
     (

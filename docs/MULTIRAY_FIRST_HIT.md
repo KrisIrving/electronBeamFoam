@@ -80,3 +80,40 @@ qualitative behaviour of a local multi-ray surface map.
 The build completed successfully on OpenFOAM v2512. Remaining compiler
 messages are pre-existing/non-fatal warnings (for example the dependency
 warning involving `alphaEqn.H` and unused recoil/evaporation coefficients).
+
+
+## Hit-map cache / retrace optimisation
+
+The multi-ray tracer is now optionally cached because late-time CFD steps can
+fall into the 1e-8 to 1e-7 s range, making a full 60-beamlet trace every source
+update unnecessarily expensive.
+
+New controls:
+
+```
+multiRayCacheEnabled          true;
+multiRayRetraceInterval       10;
+multiRayRetraceDistanceFactor 0.05;
+```
+
+A new trace is forced when any of the following is true:
+
+1. the cache is disabled;
+2. no valid hit map exists yet;
+3. `multiRayRetraceInterval` source updates have elapsed; or
+4. the beam centre has moved by at least
+   `multiRayRetraceDistanceFactor * beamRadius`.
+
+Setting `multiRayCacheEnabled false` restores the already validated
+every-update retracing algorithm and is the reference mode for A/B testing.
+
+Write-time diagnostics now include:
+
+```text
+hit-map retraced
+hit-map cache age
+```
+
+This optimisation is deliberately on `develop` until a cached-vs-reference
+100 microsecond comparison confirms that the melt-pool/source diagnostics are
+unchanged within an acceptable tolerance and wall-clock time improves.
