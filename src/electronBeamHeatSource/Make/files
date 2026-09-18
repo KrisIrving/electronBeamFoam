@@ -1,3 +1,4 @@
+electronFirstHitParticle.C
 electronBeamHeatSource.C
 
 LIB = $(FOAM_USER_LIBBIN)/libelectronBeamHeatSource

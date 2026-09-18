@@ -12,6 +12,8 @@
 
 #include "electronBeamHeatSource.H"
 #include "fvCFD.H"
+#include "constants.H"
+#include <cmath>
 
 namespace Foam
 {
@@ -91,9 +93,28 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
     (
         lookupOrDefault<Switch>("firstHitFallbackToMetal", true)
     ),
+    beamletRadialBins_(lookupOrDefault<label>("beamletRadialBins", 5)),
+    beamletAngularBins_(lookupOrDefault<label>("beamletAngularBins", 12)),
+    beamletRadiusFactor_
+    (
+        lookupOrDefault<scalar>("beamletRadiusFactor", 2.0)
+    ),
+    beamletMaxTrackHops_
+    (
+        lookupOrDefault<label>("beamletMaxTrackHops", 100000)
+    ),
+    multiRayMissAction_
+    (
+        lookupOrDefault<word>("multiRayMissAction", "skip")
+    ),
     lastFirstHitPosition_(vector::zero),
     lastFirstHitDistance_(GREAT),
     lastFirstHitFound_(false),
+    lastBeamletCount_(0),
+    lastBeamletHitCount_(0),
+    lastBeamletHitPowerFraction_(0.0),
+    lastFirstHitMinDistance_(GREAT),
+    lastFirstHitMaxDistance_(-GREAT),
     timeVsBeamPosition_(subDict("timeVsBeamPosition")),
     timeVsBeamPower_(subDict("timeVsBeamPower")),
     lastIncidentPower_(0.0),
@@ -133,11 +154,13 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
     (
         surfaceTrackingMode_ != "fixedReference"
      && surfaceTrackingMode_ != "centralFirstHit"
+     && surfaceTrackingMode_ != "multiRayFirstHit"
     )
     {
         FatalErrorInFunction
             << "Unknown surfaceTrackingMode '" << surfaceTrackingMode_ << "'. "
-            << "Valid modes are fixedReference and centralFirstHit."
+            << "Valid modes are fixedReference, centralFirstHit and "
+            << "multiRayFirstHit."
             << exit(FatalError);
     }
 
@@ -145,6 +168,36 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
     {
         FatalErrorInFunction
             << "firstHitSearchRadius must be positive" << exit(FatalError);
+    }
+
+    if (beamletRadialBins_ < 1 || beamletAngularBins_ < 1)
+    {
+        FatalErrorInFunction
+            << "beamletRadialBins and beamletAngularBins must both be >= 1"
+            << exit(FatalError);
+    }
+
+    if (beamletRadiusFactor_ <= SMALL)
+    {
+        FatalErrorInFunction
+            << "beamletRadiusFactor must be positive" << exit(FatalError);
+    }
+
+    if (beamletMaxTrackHops_ < 1)
+    {
+        FatalErrorInFunction
+            << "beamletMaxTrackHops must be >= 1" << exit(FatalError);
+    }
+
+    if
+    (
+        multiRayMissAction_ != "skip"
+     && multiRayMissAction_ != "centralFallback"
+    )
+    {
+        FatalErrorInFunction
+            << "multiRayMissAction must be 'skip' or 'centralFallback'"
+            << exit(FatalError);
     }
 
     if
@@ -176,6 +229,10 @@ electronBeamHeatSource::electronBeamHeatSource(const fvMesh& mesh)
         << "    beamDirection        = " << beamDirection_ << nl
         << "    surfaceTrackingMode  = " << surfaceTrackingMode_ << nl
         << "    firstHitSearchRadius = " << firstHitSearchRadius_ << " m" << nl
+        << "    beamletRadialBins    = " << beamletRadialBins_ << nl
+        << "    beamletAngularBins   = " << beamletAngularBins_ << nl
+        << "    beamletRadiusFactor  = " << beamletRadiusFactor_ << nl
+        << "    multiRayMissAction   = " << multiRayMissAction_ << nl
         << "    PowderSim            = " << powderSim_ << endl;
 }
 
@@ -288,6 +345,215 @@ bool electronBeamHeatSource::locateCentralFirstHit
 }
 
 
+
+void electronBeamHeatSource::transverseBasis(vector& u, vector& v) const
+{
+    const vector a =
+        (mag(beamDirection_.z()) < 0.9)
+      ? vector(0, 0, 1)
+      : vector(0, 1, 0);
+
+    u = beamDirection_ ^ a;
+    u /= (mag(u) + VSMALL);
+
+    v = beamDirection_ ^ u;
+    v /= (mag(v) + VSMALL);
+}
+
+
+void electronBeamHeatSource::traceMultiRayFirstHits
+(
+    const volScalarField& alphaMetal,
+    const vector& beamPosition,
+    pointField& hitPositions,
+    scalarField& hitDistances,
+    labelList& hitFound,
+    scalarField& beamletPowerFractions
+) const
+{
+    const fvMesh& mesh = deposition_.mesh();
+    const scalar pi = constant::mathematical::pi;
+
+    const label nTotal = beamletRadialBins_*beamletAngularBins_;
+    const scalar rMax = beamletRadiusFactor_*beamRadius_;
+
+    pointField rayCoords(nTotal, point::zero);
+    beamletPowerFractions.setSize(nTotal);
+    beamletPowerFractions = 0.0;
+
+    vector u(vector::zero), v(vector::zero);
+    transverseBasis(u, v);
+
+    scalarField radialBoundaries(beamletRadialBins_ + 1, 0.0);
+
+    for (label iR = 0; iR <= beamletRadialBins_; ++iR)
+    {
+        radialBoundaries[iR] =
+            rMax*scalar(iR)/scalar(beamletRadialBins_);
+    }
+
+    for (label iTheta = 0; iTheta < beamletAngularBins_; ++iTheta)
+    {
+        // Sample at the centre of each angular sector.
+        const scalar theta =
+            2.0*pi*(scalar(iTheta) + 0.5)/scalar(beamletAngularBins_);
+
+        for (label iR = 0; iR < beamletRadialBins_; ++iR)
+        {
+            const label rayI = iTheta*beamletRadialBins_ + iR;
+            const scalar r1 = radialBoundaries[iR];
+            const scalar r2 = radialBoundaries[iR + 1];
+
+            // Area-centroid radius for the annular sector.
+            scalar r = 0.0;
+            if (r2 > r1 + VSMALL)
+            {
+                r =
+                    (2.0/3.0)
+                   *(pow3(r2) - pow3(r1))
+                   /(sqr(r2) - sqr(r1) + VSMALL);
+            }
+
+            rayCoords[rayI] =
+                beamPosition
+              + r*cos(theta)*u
+              + r*sin(theta)*v;
+
+            // Exact Gaussian fraction of this annular sector for
+            // q(r)=2/(pi*rb^2)*exp(-2*r^2/rb^2).
+            const scalar annulusFraction =
+                exp(-2.0*sqr(r1/beamRadius_))
+              - exp(-2.0*sqr(r2/beamRadius_));
+
+            beamletPowerFractions[rayI] =
+                annulusFraction/scalar(beamletAngularBins_);
+        }
+    }
+
+    Cloud<electronFirstHitParticle> rayCloud
+    (
+        mesh,
+        "electronFirstHitRays",
+        IDLList<electronFirstHitParticle>()
+    );
+
+    // Move seed points slightly into the domain to avoid exact face hits.
+    const scalar eps = max(1e-6*beamRadius_, scalar(100)*VSMALL);
+    const vector perturbation = eps*(beamDirection_ + u);
+
+    label localSeeded = 0;
+
+    forAll(rayCoords, rayI)
+    {
+        const point seedPoint = rayCoords[rayI] + perturbation;
+        const label cellI = mesh.findCell(seedPoint);
+
+        if (cellI >= 0)
+        {
+            electronFirstHitParticle* pPtr = new electronFirstHitParticle
+            (
+                mesh,
+                seedPoint,
+                cellI,
+                beamDirection_,
+                rayI
+            );
+
+            rayCloud.addParticle(pPtr);
+            ++localSeeded;
+        }
+    }
+
+    label totalSeeded = localSeeded;
+    reduce(totalSeeded, sumOp<label>());
+
+    if (totalSeeded != nTotal && mesh.time().writeTime())
+    {
+        WarningInFunction
+            << "Expected " << nTotal << " beamlets but seeded "
+            << totalSeeded << ". Check that the complete beam footprint "
+            << "starts inside the computational domain." << endl;
+    }
+
+    DynamicList<label> localHitIDs;
+    DynamicList<point> localHitPositions;
+    DynamicList<scalar> localHitDistances;
+    label hopLimitTerminations = 0;
+
+    electronFirstHitParticle::trackingData td
+    (
+        rayCloud,
+        alphaMetal,
+        firstHitAlphaCutoff_,
+        beamletMaxTrackHops_,
+        localHitIDs,
+        localHitPositions,
+        localHitDistances,
+        hopLimitTerminations
+    );
+
+    rayCloud.storeGlobalPositions();
+    rayCloud.move(rayCloud, td, GREAT);
+
+    reduce(hopLimitTerminations, sumOp<label>());
+
+    if (hopLimitTerminations > 0 && mesh.time().writeTime())
+    {
+        WarningInFunction
+            << hopLimitTerminations
+            << " beamlets reached beamletMaxTrackHops="
+            << beamletMaxTrackHops_ << endl;
+    }
+
+    List<labelList> allIDs(Pstream::nProcs());
+    List<pointField> allPositions(Pstream::nProcs());
+    List<scalarField> allDistances(Pstream::nProcs());
+
+    allIDs[Pstream::myProcNo()] = localHitIDs;
+    allPositions[Pstream::myProcNo()] = localHitPositions;
+    allDistances[Pstream::myProcNo()] = localHitDistances;
+
+    Pstream::gatherList(allIDs);
+    Pstream::gatherList(allPositions);
+    Pstream::gatherList(allDistances);
+
+    Pstream::broadcastList(allIDs);
+    Pstream::broadcastList(allPositions);
+    Pstream::broadcastList(allDistances);
+
+    hitPositions = rayCoords;
+    hitDistances.setSize(nTotal);
+    hitDistances = GREAT;
+    hitFound.setSize(nTotal);
+    hitFound = 0;
+
+    for (label procI = 0; procI < Pstream::nProcs(); ++procI)
+    {
+        const labelList& ids = allIDs[procI];
+        const pointField& positions = allPositions[procI];
+        const scalarField& distances = allDistances[procI];
+
+        forAll(ids, i)
+        {
+            const label rayI = ids[i];
+
+            if (rayI < 0 || rayI >= nTotal)
+            {
+                continue;
+            }
+
+            if (!hitFound[rayI] || distances[i] < hitDistances[rayI])
+            {
+                hitFound[rayI] = 1;
+                hitPositions[rayI] = positions[i];
+                hitDistances[rayI] = distances[i];
+            }
+        }
+    }
+}
+
+
+
 void electronBeamHeatSource::updateDeposition
 (
     const volScalarField& alphaMetal,
@@ -296,13 +562,22 @@ void electronBeamHeatSource::updateDeposition
 {
     const fvMesh& mesh = deposition_.mesh();
     const scalar time = mesh.time().value();
+    const scalar pi = constant::mathematical::pi;
 
     const vector beamPosition = timeVsBeamPosition_(time);
     const scalar incidentPower = max(timeVsBeamPower_(time), scalar(0));
-    const scalar targetAbsorbedPower = absorptivity_*incidentPower;
+    const scalar requestedAbsorbedPower = absorptivity_*incidentPower;
 
     lastIncidentPower_ = incidentPower;
     lastAbsorbedPower_ = 0.0;
+    lastFirstHitFound_ = false;
+    lastFirstHitPosition_ = beamPosition;
+    lastFirstHitDistance_ = GREAT;
+    lastBeamletCount_ = 0;
+    lastBeamletHitCount_ = 0;
+    lastBeamletHitPowerFraction_ = 0.0;
+    lastFirstHitMinDistance_ = GREAT;
+    lastFirstHitMaxDistance_ = -GREAT;
 
     deposition_ = dimensionedScalar
     (
@@ -311,14 +586,10 @@ void electronBeamHeatSource::updateDeposition
         0.0
     );
 
-    if (targetAbsorbedPower <= SMALL)
+    if (requestedAbsorbedPower <= SMALL)
     {
         deposition_.correctBoundaryConditions();
-        lastFirstHitFound_ = false;
-        lastFirstHitPosition_ = beamPosition;
-        lastFirstHitDistance_ = GREAT;
 
-        // Avoid per-time-step console/file I/O.  Report only at write times.
         if (mesh.time().writeTime())
         {
             Info<< "Electron beam: t=" << time << " s, beam off" << endl;
@@ -327,9 +598,17 @@ void electronBeamHeatSource::updateDeposition
     }
 
     vector depositionOrigin = beamPosition;
-    lastFirstHitFound_ = false;
-    lastFirstHitPosition_ = beamPosition;
-    lastFirstHitDistance_ = 0.0;
+
+    pointField multiHitPositions;
+    scalarField multiHitDistances;
+    labelList multiHitFound;
+    scalarField beamletPowerFractions;
+
+    scalar effectiveAbsorbedPower = requestedAbsorbedPower;
+
+    bool centralFallbackFound = false;
+    vector centralFallbackPosition = beamPosition;
+    scalar centralFallbackDistance = GREAT;
 
     if
     (
@@ -360,7 +639,7 @@ void electronBeamHeatSource::updateDeposition
                     << "No central first-hit metal surface was found at t="
                     << time << " s. beamPosition=" << beamPosition
                     << ", searchRadius=" << firstHitSearchRadius_ << " m. "
-                    << "Electron deposition is set to zero for this update."
+                    << "Electron deposition is zero for this update."
                     << endl;
             }
             return;
@@ -370,9 +649,110 @@ void electronBeamHeatSource::updateDeposition
         lastFirstHitFound_ = true;
         lastFirstHitPosition_ = hitPosition;
         lastFirstHitDistance_ = hitDistance;
+        lastFirstHitMinDistance_ = hitDistance;
+        lastFirstHitMaxDistance_ = hitDistance;
+    }
+    else if
+    (
+        depositionModel_ == "volumetricGaussian"
+     && surfaceTrackingMode_ == "multiRayFirstHit"
+    )
+    {
+        traceMultiRayFirstHits
+        (
+            alphaMetal,
+            beamPosition,
+            multiHitPositions,
+            multiHitDistances,
+            multiHitFound,
+            beamletPowerFractions
+        );
+
+        lastBeamletCount_ = multiHitFound.size();
+
+        scalar totalSampledFraction = 0.0;
+        scalar hitSampledFraction = 0.0;
+        vector weightedHitPosition(vector::zero);
+        scalar weightedHitDistance = 0.0;
+
+        forAll(multiHitFound, rayI)
+        {
+            totalSampledFraction += beamletPowerFractions[rayI];
+
+            if (multiHitFound[rayI])
+            {
+                ++lastBeamletHitCount_;
+                hitSampledFraction += beamletPowerFractions[rayI];
+                weightedHitPosition +=
+                    beamletPowerFractions[rayI]*multiHitPositions[rayI];
+                weightedHitDistance +=
+                    beamletPowerFractions[rayI]*multiHitDistances[rayI];
+
+                lastFirstHitMinDistance_ =
+                    min(lastFirstHitMinDistance_, multiHitDistances[rayI]);
+                lastFirstHitMaxDistance_ =
+                    max(lastFirstHitMaxDistance_, multiHitDistances[rayI]);
+            }
+        }
+
+        if (totalSampledFraction > VSMALL)
+        {
+            lastBeamletHitPowerFraction_ =
+                hitSampledFraction/totalSampledFraction;
+        }
+
+        if (hitSampledFraction > VSMALL)
+        {
+            lastFirstHitFound_ = true;
+            lastFirstHitPosition_ =
+                weightedHitPosition/hitSampledFraction;
+            lastFirstHitDistance_ =
+                weightedHitDistance/hitSampledFraction;
+        }
+
+        if (!lastFirstHitFound_)
+        {
+            deposition_.correctBoundaryConditions();
+
+            if (mesh.time().writeTime())
+            {
+                WarningInFunction
+                    << "No multi-ray beamlet found metal at t=" << time
+                    << " s. Electron deposition is zero." << endl;
+            }
+            return;
+        }
+
+        if (multiRayMissAction_ == "skip")
+        {
+            // Do not redistribute power represented by escaped beamlets.
+            effectiveAbsorbedPower =
+                requestedAbsorbedPower*lastBeamletHitPowerFraction_;
+        }
+        else if
+        (
+            lastBeamletHitCount_ < lastBeamletCount_
+         && multiRayMissAction_ == "centralFallback"
+        )
+        {
+            centralFallbackFound = locateCentralFirstHit
+            (
+                alphaMetal,
+                nFiltered,
+                beamPosition,
+                centralFallbackPosition,
+                centralFallbackDistance
+            );
+
+            if (!centralFallbackFound)
+            {
+                effectiveAbsorbedPower =
+                    requestedAbsorbedPower*lastBeamletHitPowerFraction_;
+            }
+        }
     }
 
-    const vectorField& C = mesh.C();
+    const vectorField& Cc = mesh.C();
     const scalarField& V = mesh.V();
     const scalarField& alphaI = alphaMetal.primitiveField();
 
@@ -386,19 +766,106 @@ void electronBeamHeatSource::updateDeposition
 
     const scalar invRb2 = 1.0/sqr(beamRadius_);
 
-    // A Gaussian at r=4*rb has exp(-32) weight (~1.3e-14).  Skipping
-    // cells outside this radius avoids expensive exp() evaluations without
-    // changing the deposited energy, since the retained kernel is globally
-    // normalised below.
-    const scalar radialCutoff2 = 16.0*sqr(beamRadius_);
+    const bool multiRayMode =
+        depositionModel_ == "volumetricGaussian"
+     && surfaceTrackingMode_ == "multiRayFirstHit";
+
+    const scalar radialCutoff =
+        multiRayMode
+      ? beamletRadiusFactor_*beamRadius_
+      : 4.0*beamRadius_;
+
+    const scalar radialCutoff2 = sqr(radialCutoff);
+
+    vector u(vector::zero), v(vector::zero);
+    if (multiRayMode)
+    {
+        transverseBasis(u, v);
+    }
+
+    const scalar rMax = beamletRadiusFactor_*beamRadius_;
 
     forAll(rawWeight, celli)
     {
-        const vector rel = C[celli] - depositionOrigin;
-        const scalar depth = rel & beamDirection_;
+        scalar depth = 0.0;
+        vector radial(vector::zero);
+        scalar r2 = 0.0;
 
-        // For the volumetric model, reject cells before evaluating the
-        // radial Gaussian.  This is important for large parallel meshes.
+        if (multiRayMode)
+        {
+            const vector relBeam = Cc[celli] - beamPosition;
+            const scalar axial = relBeam & beamDirection_;
+            radial = relBeam - axial*beamDirection_;
+            r2 = magSqr(radial);
+
+            if (r2 > radialCutoff2 || alphaI[celli] < minMetalFraction_)
+            {
+                continue;
+            }
+
+            const scalar r = sqrt(max(r2, scalar(0)));
+            scalar theta = std::atan2(radial & v, radial & u);
+
+            if (theta < 0.0)
+            {
+                theta += 2.0*pi;
+            }
+
+            label iR = label
+            (
+                std::floor
+                (
+                    (r/(rMax + VSMALL))*scalar(beamletRadialBins_)
+                )
+            );
+            iR = max(label(0), min(iR, beamletRadialBins_ - 1));
+
+            label iTheta = label
+            (
+                std::floor
+                (
+                    (theta/(2.0*pi))*scalar(beamletAngularBins_)
+                )
+            );
+            iTheta = max(label(0), min(iTheta, beamletAngularBins_ - 1));
+
+            const label rayI = iTheta*beamletRadialBins_ + iR;
+
+            if (multiHitFound[rayI])
+            {
+                depth =
+                    (Cc[celli] - multiHitPositions[rayI]) & beamDirection_;
+            }
+            else if
+            (
+                multiRayMissAction_ == "centralFallback"
+             && centralFallbackFound
+            )
+            {
+                const point fallbackHit =
+                    multiHitPositions[rayI]
+                  + centralFallbackDistance*beamDirection_;
+
+                depth = (Cc[celli] - fallbackHit) & beamDirection_;
+            }
+            else
+            {
+                continue;
+            }
+        }
+        else
+        {
+            const vector rel = Cc[celli] - depositionOrigin;
+            depth = rel & beamDirection_;
+            radial = rel - depth*beamDirection_;
+            r2 = magSqr(radial);
+
+            if (r2 > radialCutoff2)
+            {
+                continue;
+            }
+        }
+
         if
         (
             depositionModel_ == "volumetricGaussian"
@@ -409,14 +876,6 @@ void electronBeamHeatSource::updateDeposition
              || depth > maxPenetrationDepth_
             )
         )
-        {
-            continue;
-        }
-
-        const vector radial = rel - depth*beamDirection_;
-        const scalar r2 = magSqr(radial);
-
-        if (r2 > radialCutoff2)
         {
             continue;
         }
@@ -440,23 +899,23 @@ void electronBeamHeatSource::updateDeposition
     }
 
     scalar weightIntegral = 0.0;
+
     forAll(rawWeight, celli)
     {
         weightIntegral += rawWeight[celli]*V[celli];
     }
+
     reduce(weightIntegral, sumOp<scalar>());
 
     if (weightIntegral <= VSMALL)
     {
-        // Do not flood long parallel runs with the same warning every time
-        // step.  A write-time warning is sufficient for diagnostics.
         if (mesh.time().writeTime())
         {
             WarningInFunction
                 << "Electron beam does not intersect eligible metal/interface "
                 << "cells at t=" << time << " s. Position=" << beamPosition
-                << ", requested absorbed power=" << targetAbsorbedPower << " W."
-                << endl;
+                << ", requested absorbed power=" << requestedAbsorbedPower
+                << " W." << endl;
         }
 
         deposition_.correctBoundaryConditions();
@@ -464,7 +923,7 @@ void electronBeamHeatSource::updateDeposition
     }
 
     scalarField& qI = deposition_.primitiveFieldRef();
-    const scalar normalisation = targetAbsorbedPower/weightIntegral;
+    const scalar normalisation = effectiveAbsorbedPower/weightIntegral;
 
     forAll(qI, celli)
     {
@@ -473,11 +932,10 @@ void electronBeamHeatSource::updateDeposition
 
     deposition_.correctBoundaryConditions();
 
-    // The field is normalised using the globally reduced weightIntegral, so
-    // its integral is targetAbsorbedPower by construction.  Avoid a second
-    // MPI global reduction every time step.  Perform the explicit integral
-    // only at output times as a power-conservation diagnostic.
-    lastAbsorbedPower_ = targetAbsorbedPower;
+    // By construction this is the globally normalised effective absorbed power.
+    // Only integrate explicitly at write times to avoid a second MPI reduction
+    // every CFD time step.
+    lastAbsorbedPower_ = effectiveAbsorbedPower;
 
     if (mesh.time().writeTime())
     {
@@ -485,14 +943,35 @@ void electronBeamHeatSource::updateDeposition
 
         Info<< "Electron beam: t=" << time << " s" << nl
             << "    position             = " << beamPosition << nl
-            << "    deposition origin    = " << depositionOrigin << nl
-            << "    first-hit found      = " << lastFirstHitFound_ << nl
-            << "    first-hit distance   = " << lastFirstHitDistance_ << " m" << nl
-            << "    incident power       = " << incidentPower << " W" << nl
-            << "    target absorbed      = " << targetAbsorbedPower << " W" << nl
+            << "    surface tracking     = " << surfaceTrackingMode_ << nl;
+
+        if (multiRayMode)
+        {
+            Info<< "    beamlets             = " << lastBeamletCount_ << nl
+                << "    beamlets hit metal   = " << lastBeamletHitCount_ << nl
+                << "    hit power fraction   = "
+                << lastBeamletHitPowerFraction_ << nl
+                << "    first-hit mean dist  = "
+                << lastFirstHitDistance_ << " m" << nl
+                << "    first-hit min dist   = "
+                << lastFirstHitMinDistance_ << " m" << nl
+                << "    first-hit max dist   = "
+                << lastFirstHitMaxDistance_ << " m" << nl;
+        }
+        else
+        {
+            Info<< "    deposition origin    = " << depositionOrigin << nl
+                << "    first-hit found      = " << lastFirstHitFound_ << nl
+                << "    first-hit distance   = "
+                << lastFirstHitDistance_ << " m" << nl;
+        }
+
+        Info<< "    incident power       = " << incidentPower << " W" << nl
+            << "    requested absorbed   = " << requestedAbsorbedPower << " W" << nl
+            << "    effective absorbed   = " << effectiveAbsorbedPower << " W" << nl
             << "    integrated deposited = " << lastAbsorbedPower_ << " W" << nl
             << "    power error          = "
-            << lastAbsorbedPower_ - targetAbsorbedPower << " W" << endl;
+            << lastAbsorbedPower_ - effectiveAbsorbedPower << " W" << endl;
     }
 }
 

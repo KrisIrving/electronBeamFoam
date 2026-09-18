@@ -15,3 +15,12 @@ printf 'Latest first-hit      : '
 grep 'first-hit distance' "$LOG" | tail -1 || true
 printf 'Latest power error    : '
 grep 'power error' "$LOG" | tail -1 || true
+
+printf 'Latest tracking mode   : '
+grep 'surface tracking' "$LOG" | tail -1 || true
+printf 'Latest beamlet hits    : '
+grep 'beamlets hit metal' "$LOG" | tail -1 || true
+printf 'Latest hit fraction    : '
+grep 'hit power fraction' "$LOG" | tail -1 || true
+printf 'Latest first-hit mean  : '
+grep -E 'first-hit mean dist|first-hit distance' "$LOG" | tail -1 || true

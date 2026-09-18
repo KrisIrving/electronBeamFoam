@@ -9,6 +9,8 @@ License
 #include "volFields.H"
 #include "dictionary.H"
 #include "interpolationTable.H"
+#include "Cloud.H"
+#include "electronFirstHitParticle.H"
 
 namespace Foam
 {
@@ -39,9 +41,22 @@ class electronBeamHeatSource
     scalar firstHitFallbackMetalFraction_;
     Switch firstHitFallbackToMetal_;
 
+    // Polar multi-ray surface map controls.
+    label beamletRadialBins_;
+    label beamletAngularBins_;
+    scalar beamletRadiusFactor_;
+    label beamletMaxTrackHops_;
+    word multiRayMissAction_;
+
     vector lastFirstHitPosition_;
     scalar lastFirstHitDistance_;
     Switch lastFirstHitFound_;
+
+    label lastBeamletCount_;
+    label lastBeamletHitCount_;
+    scalar lastBeamletHitPowerFraction_;
+    scalar lastFirstHitMinDistance_;
+    scalar lastFirstHitMaxDistance_;
 
     interpolationTable<vector> timeVsBeamPosition_;
     interpolationTable<scalar> timeVsBeamPower_;
@@ -65,6 +80,21 @@ class electronBeamHeatSource
         scalar& hitDistance
     ) const;
 
+    //- Construct an orthonormal transverse basis around beamDirection_.
+    void transverseBasis(vector& u, vector& v) const;
+
+    //- Trace a polar set of beamlets to the first metal-containing cell.
+    //  Hit arrays are reconstructed identically on all MPI ranks.
+    void traceMultiRayFirstHits
+    (
+        const volScalarField& alphaMetal,
+        const vector& beamPosition,
+        pointField& hitPositions,
+        scalarField& hitDistances,
+        labelList& hitFound,
+        scalarField& beamletPowerFractions
+    ) const;
+
 public:
     TypeName("electronBeamHeatSource");
 
@@ -78,6 +108,15 @@ public:
     bool lastFirstHitFound() const { return lastFirstHitFound_; }
     const vector& lastFirstHitPosition() const { return lastFirstHitPosition_; }
     scalar lastFirstHitDistance() const { return lastFirstHitDistance_; }
+
+    label lastBeamletCount() const { return lastBeamletCount_; }
+    label lastBeamletHitCount() const { return lastBeamletHitCount_; }
+    scalar lastBeamletHitPowerFraction() const
+    {
+        return lastBeamletHitPowerFraction_;
+    }
+    scalar lastFirstHitMinDistance() const { return lastFirstHitMinDistance_; }
+    scalar lastFirstHitMaxDistance() const { return lastFirstHitMaxDistance_; }
 
     void updateDeposition
     (

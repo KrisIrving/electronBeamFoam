@@ -29,12 +29,22 @@ beamDirection          (0 1 0);
 // For volumetricGaussian, measure penetration from the instantaneous
 // metal-vacuum surface rather than from timeVsBeamPosition.
 // fixedReference | centralFirstHit
-surfaceTrackingMode    centralFirstHit;
+surfaceTrackingMode    multiRayFirstHit;
 firstHitSearchRadius   35e-6;
 firstHitNormalThreshold 0.1;
 firstHitAlphaCutoff    1e-3;
 firstHitFallbackMetalFraction 0.5;
 firstHitFallbackToMetal true;
+
+// multiRayFirstHit controls. 5 x 12 = 60 beamlets.
+beamletRadialBins      5;
+beamletAngularBins     12;
+beamletRadiusFactor    2.0;
+beamletMaxTrackHops    100000;
+
+// skip: escaped Gaussian beamlet power is not redistributed.
+// centralFallback: missed sectors borrow the central first-hit depth.
+multiRayMissAction     skip;
 
 timeVsBeamPosition
 {
