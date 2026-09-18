@@ -45,6 +45,9 @@ timePrecision   10;
 
 runTimeModifiable yes;
 
+// Lightweight stage timing, reported only at write times.
+performanceProfiling true;
+
 adjustTimeStep  yes;
 
 maxCo           0.25;//0.1;

@@ -1,6 +1,12 @@
 if (pimple.firstIter() || moveMeshOuterCorrectors)
 {
+    const auto profileMeshStart = profileNow();
     mesh.update();
+
+    if (performanceProfiling)
+    {
+        profileMeshWall += profileElapsed(profileMeshStart);
+    }
 
     if (mesh.changing())
     {

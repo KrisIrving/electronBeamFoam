@@ -5,7 +5,13 @@ if (pimple.firstIter() || moveMeshOuterCorrectors)
         advector.surf().reconstruct();
     }
 
+    const auto profileMeshStart = profileNow();
     mesh.update();
+
+    if (performanceProfiling)
+    {
+        profileMeshWall += profileElapsed(profileMeshStart);
+    }
 
     if (mesh.changing())
     {

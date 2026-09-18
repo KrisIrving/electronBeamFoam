@@ -24,3 +24,12 @@ printf 'Latest hit fraction    : '
 grep 'hit power fraction' "$LOG" | tail -1 || true
 printf 'Latest first-hit mean  : '
 grep -E 'first-hit mean dist|first-hit distance' "$LOG" | tail -1 || true
+
+printf 'Latest profile total   : '
+grep 'wall total' "$LOG" | tail -1 || true
+printf 'Latest thermal share   : '
+grep 'thermal/phase' "$LOG" | tail -1 || true
+printf 'Latest pressure share  : '
+grep '    pressure             =' "$LOG" | tail -1 || true
+printf 'Latest beam share      : '
+grep 'electron beam' "$LOG" | tail -1 || true

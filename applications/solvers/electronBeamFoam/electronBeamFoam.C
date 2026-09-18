@@ -67,6 +67,8 @@ Authors
 #include "electronBeamHeatSource.H"
 #include "mthdModel.H"
 
+#include <chrono>
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
@@ -107,10 +109,70 @@ int main(int argc, char *argv[])
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    const Switch performanceProfiling
+    (
+        runTime.controlDict().lookupOrDefault<Switch>
+        (
+            "performanceProfiling",
+            true
+        )
+    );
+
+    using profileClock = std::chrono::steady_clock;
+
+    const auto profileNow = []()
+    {
+        return profileClock::now();
+    };
+
+    const auto profileElapsed =
+    []
+    (
+        const profileClock::time_point& start
+    ) -> scalar
+    {
+        return scalar
+        (
+            std::chrono::duration<double>
+            (
+                profileClock::now() - start
+            ).count()
+        );
+    };
+
+    scalar profileStepWall = 0.0;
+    scalar profileMeshWall = 0.0;
+    scalar profileAlphaWall = 0.0;
+    scalar profilePropsWall = 0.0;
+    scalar profileBeamWall = 0.0;
+    scalar profileMomentumWall = 0.0;
+    scalar profileThermalWall = 0.0;
+    scalar profilePressureWall = 0.0;
+    scalar profileTurbulenceWall = 0.0;
+    scalar profileWriteWall = 0.0;
+
+    label profileSteps = 0;
+    label profilePimpleIterations = 0;
+    label profilePressureCorrectors = 0;
+    label profileThermalCorrectors = 0;
+    label profileMaxThermalCorrectors = 0;
+
+    scalar profileDeltaTSum = 0.0;
+    scalar profileDeltaTMin = GREAT;
+    scalar profileDeltaTMax = 0.0;
+
     Info<< "\nStarting time loop\n" << endl;
+
+    if (performanceProfiling)
+    {
+        Info<< "Performance profiling enabled; interval summaries are written "
+            << "at normal output times." << nl << endl;
+    }
 
     while (runTime.run())
     {
+        const auto profileStepStart = profileNow();
+
         #include "readControls.H"
         #include "readDyMControls.H"
 
@@ -136,11 +198,27 @@ int main(int argc, char *argv[])
 
         ++runTime;
 
+        if (performanceProfiling)
+        {
+            ++profileSteps;
+            profileDeltaTSum += runTime.deltaTValue();
+            profileDeltaTMin =
+                min(profileDeltaTMin, runTime.deltaTValue());
+            profileDeltaTMax =
+                max(profileDeltaTMax, runTime.deltaTValue());
+        }
+
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
+            if (performanceProfiling)
+            {
+                ++profilePimpleIterations;
+            }
+
+            const auto profileAlphaStart = profileNow();
 
             if (interfaceTrackingScheme == "MULES")
             {
@@ -155,34 +233,105 @@ int main(int argc, char *argv[])
                 #include "isoAdvector/alphaEqnSubCycle.H"
             }
 
-            #include "updateProps.H"
+            if (performanceProfiling)
+            {
+                profileAlphaWall += profileElapsed(profileAlphaStart);
+            }
+
+            {
+                const auto profilePropsStart = profileNow();
+                #include "updateProps.H"
+                if (performanceProfiling)
+                {
+                    profilePropsWall += profileElapsed(profilePropsStart);
+                }
+            }
 
             // Update electron-beam energy deposition field
-            electronBeam.updateDeposition(alpha_filtered, n_filtered);
+            {
+                const auto profileBeamStart = profileNow();
+                electronBeam.updateDeposition(alpha_filtered, n_filtered);
+                if (performanceProfiling)
+                {
+                    profileBeamWall += profileElapsed(profileBeamStart);
+                }
+            }
 
-            mixture.correct();
+            {
+                const auto profilePropsStart = profileNow();
+                mixture.correct();
+                if (performanceProfiling)
+                {
+                    profilePropsWall += profileElapsed(profilePropsStart);
+                }
+            }
 
             if (pimple.frozenFlow())
             {
                 continue;
             }
 
-            #include "UEqn.H"
-            if (mthd.valid())
             {
-                mthd->solve(phi, U);
+                const auto profileMomentumStart = profileNow();
+
+                #include "UEqn.H"
+
+                if (mthd.valid())
+                {
+                    mthd->solve(phi, U);
+                }
+
+                if (performanceProfiling)
+                {
+                    profileMomentumWall +=
+                        profileElapsed(profileMomentumStart);
+                }
             }
-            #include "TEqn.H"
+
+            {
+                const auto profileThermalStart = profileNow();
+
+                #include "TEqn.H"
+
+                if (performanceProfiling)
+                {
+                    profileThermalWall +=
+                        profileElapsed(profileThermalStart);
+                }
+            }
 
             // --- Pressure corrector loop
-            while (pimple.correct())
             {
-                #include "pEqn.H"
+                const auto profilePressureStart = profileNow();
+
+                while (pimple.correct())
+                {
+                    if (performanceProfiling)
+                    {
+                        ++profilePressureCorrectors;
+                    }
+
+                    #include "pEqn.H"
+                }
+
+                if (performanceProfiling)
+                {
+                    profilePressureWall +=
+                        profileElapsed(profilePressureStart);
+                }
             }
 
             if (pimple.turbCorr())
             {
+                const auto profileTurbulenceStart = profileNow();
+
                 turbulence->correct();
+
+                if (performanceProfiling)
+                {
+                    profileTurbulenceWall +=
+                        profileElapsed(profileTurbulenceStart);
+                }
             }
         }
 
@@ -191,7 +340,131 @@ int main(int argc, char *argv[])
             mesh.lookupObject<volScalarField>("alpha.metal");
         liquidMetalCells = pos(alphaMetal - 0.5)*pos(epsilon1 - 0.5);
 
+        const bool profileReportNow =
+            performanceProfiling && runTime.writeTime();
+
+        const auto profileWriteStart = profileNow();
         runTime.write();
+
+        if (performanceProfiling)
+        {
+            profileWriteWall += profileElapsed(profileWriteStart);
+            profileStepWall += profileElapsed(profileStepStart);
+        }
+
+        if (profileReportNow)
+        {
+            // Report the slowest MPI rank for every wall-clock category.
+            scalar wallTotal = profileStepWall;
+            scalar wallMesh = profileMeshWall;
+            scalar wallAlpha = profileAlphaWall;
+            scalar wallProps = profilePropsWall;
+            scalar wallBeam = profileBeamWall;
+            scalar wallMomentum = profileMomentumWall;
+            scalar wallThermal = profileThermalWall;
+            scalar wallPressure = profilePressureWall;
+            scalar wallTurbulence = profileTurbulenceWall;
+            scalar wallWrite = profileWriteWall;
+
+            reduce(wallTotal, maxOp<scalar>());
+            reduce(wallMesh, maxOp<scalar>());
+            reduce(wallAlpha, maxOp<scalar>());
+            reduce(wallProps, maxOp<scalar>());
+            reduce(wallBeam, maxOp<scalar>());
+            reduce(wallMomentum, maxOp<scalar>());
+            reduce(wallThermal, maxOp<scalar>());
+            reduce(wallPressure, maxOp<scalar>());
+            reduce(wallTurbulence, maxOp<scalar>());
+            reduce(wallWrite, maxOp<scalar>());
+
+            const scalar wallVofOnly =
+                max(wallAlpha - wallMesh, scalar(0));
+
+            const scalar accounted =
+                wallMesh
+              + wallVofOnly
+              + wallProps
+              + wallBeam
+              + wallMomentum
+              + wallThermal
+              + wallPressure
+              + wallTurbulence
+              + wallWrite;
+
+            const scalar wallOther =
+                max(wallTotal - accounted, scalar(0));
+
+            const scalar invWall =
+                100.0/(wallTotal + VSMALL);
+
+            label globalCells = mesh.nCells();
+            reduce(globalCells, sumOp<label>());
+
+            const scalar meanDeltaT =
+                profileDeltaTSum/max(profileSteps, label(1));
+
+            if (Pstream::master())
+            {
+                Info<< "Performance profile: since previous write" << nl
+                    << "    steps                = " << profileSteps << nl
+                    << "    PIMPLE iterations    = "
+                    << profilePimpleIterations << nl
+                    << "    pressure correctors  = "
+                    << profilePressureCorrectors << nl
+                    << "    thermal correctors   = "
+                    << profileThermalCorrectors << nl
+                    << "    max thermal/TEqn     = "
+                    << profileMaxThermalCorrectors << nl
+                    << "    deltaT min/mean/max  = "
+                    << profileDeltaTMin << " / "
+                    << meanDeltaT << " / "
+                    << profileDeltaTMax << " s" << nl
+                    << "    global cells         = " << globalCells << nl
+                    << "    wall total           = " << wallTotal
+                    << " s (100%)" << nl
+                    << "    mesh update          = " << wallMesh
+                    << " s (" << wallMesh*invWall << "%)" << nl
+                    << "    VOF/interface        = " << wallVofOnly
+                    << " s (" << wallVofOnly*invWall << "%)" << nl
+                    << "    properties           = " << wallProps
+                    << " s (" << wallProps*invWall << "%)" << nl
+                    << "    electron beam        = " << wallBeam
+                    << " s (" << wallBeam*invWall << "%)" << nl
+                    << "    momentum             = " << wallMomentum
+                    << " s (" << wallMomentum*invWall << "%)" << nl
+                    << "    thermal/phase        = " << wallThermal
+                    << " s (" << wallThermal*invWall << "%)" << nl
+                    << "    pressure             = " << wallPressure
+                    << " s (" << wallPressure*invWall << "%)" << nl
+                    << "    turbulence           = " << wallTurbulence
+                    << " s (" << wallTurbulence*invWall << "%)" << nl
+                    << "    write I/O            = " << wallWrite
+                    << " s (" << wallWrite*invWall << "%)" << nl
+                    << "    other                = " << wallOther
+                    << " s (" << wallOther*invWall << "%)" << endl;
+            }
+
+            profileStepWall = 0.0;
+            profileMeshWall = 0.0;
+            profileAlphaWall = 0.0;
+            profilePropsWall = 0.0;
+            profileBeamWall = 0.0;
+            profileMomentumWall = 0.0;
+            profileThermalWall = 0.0;
+            profilePressureWall = 0.0;
+            profileTurbulenceWall = 0.0;
+            profileWriteWall = 0.0;
+
+            profileSteps = 0;
+            profilePimpleIterations = 0;
+            profilePressureCorrectors = 0;
+            profileThermalCorrectors = 0;
+            profileMaxThermalCorrectors = 0;
+
+            profileDeltaTSum = 0.0;
+            profileDeltaTMin = GREAT;
+            profileDeltaTMax = 0.0;
+        }
 
         runTime.printExecutionTime(Info);
     }

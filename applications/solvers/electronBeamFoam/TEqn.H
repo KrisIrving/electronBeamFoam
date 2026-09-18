@@ -136,6 +136,13 @@
      && iter <= maxTCorr
     );
 
+    if (performanceProfiling)
+    {
+        profileThermalCorrectors += iter;
+        profileMaxThermalCorrectors =
+            max(profileMaxThermalCorrectors, label(iter));
+    }
+
     gradT = fvc::grad(T);
     gradT.correctBoundaryConditions();  // ADDED - CRITICAL!
 }
