@@ -1,0 +1,67 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| electronBeamFoam: electron-beam source controls                           |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      ElectronBeamProperties;
+}
+
+PowderSim              false;
+
+// surfaceGaussian | volumetricGaussian | tabulatedMC (reserved)
+depositionModel        volumetricGaussian;
+
+absorptivity           0.85;
+beamRadius             70e-6;
+
+penetrationDepth       20e-6;
+maxPenetrationDepth    120e-6;
+minMetalFraction       1e-3;
+
+// Unit vector from vacuum toward the material.
+// Verify orientation against the mesh before running.
+beamDirection          (0 1 0);
+
+// For volumetricGaussian, measure penetration from the instantaneous
+// metal-vacuum surface rather than from timeVsBeamPosition.
+// fixedReference | centralFirstHit
+surfaceTrackingMode    multiRayFirstHit;
+firstHitSearchRadius   35e-6;
+firstHitNormalThreshold 0.1;
+firstHitAlphaCutoff    1e-3;
+firstHitFallbackMetalFraction 0.5;
+firstHitFallbackToMetal true;
+
+// multiRayFirstHit controls. 5 x 12 = 60 beamlets.
+beamletRadialBins      5;
+beamletAngularBins     12;
+beamletRadiusFactor    2.0;
+beamletMaxTrackHops    100000;
+
+// skip: escaped Gaussian beamlet power is not redistributed.
+// centralFallback: missed sectors borrow the central first-hit depth.
+multiRayMissAction     skip;
+
+// Optional first-hit map caching. Disable to recover the fully retraced
+// reference algorithm exactly. With caching enabled, retrace at least every
+// N source updates, or sooner when the beam moves by the specified fraction
+// of beamRadius.
+multiRayCacheEnabled          false;
+multiRayRetraceInterval       10;
+multiRayRetraceDistanceFactor 0.05;
+
+timeVsBeamPosition
+{
+    file        "$FOAM_CASE/constant/timeVsBeamPosition";
+    outOfBounds clamp;
+}
+
+timeVsBeamPower
+{
+    file        "$FOAM_CASE/constant/timeVsBeamPower";
+    outOfBounds clamp;
+}

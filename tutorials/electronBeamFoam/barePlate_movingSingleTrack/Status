@@ -1,0 +1,43 @@
+#!/bin/bash
+# Compact status only; does not follow the full solver output.
+LOG=log.electronBeamFoam
+if [ ! -f "$LOG" ]; then
+    echo "No $LOG yet."
+    exit 0
+fi
+printf 'Latest simulation time: '
+grep '^[[:space:]]*Time = ' "$LOG" | tail -1 || true
+printf 'Latest execution time : '
+grep 'ExecutionTime = ' "$LOG" | tail -1 || true
+printf 'Latest deltaT         : '
+grep 'deltaT = ' "$LOG" | tail -1 || true
+printf 'Latest first-hit      : '
+grep 'first-hit distance' "$LOG" | tail -1 || true
+printf 'Latest power error    : '
+grep 'power error' "$LOG" | tail -1 || true
+
+printf 'Latest tracking mode   : '
+grep 'surface tracking' "$LOG" | tail -1 || true
+printf 'Latest beamlet hits    : '
+grep 'beamlets hit metal' "$LOG" | tail -1 || true
+printf 'Latest hit fraction    : '
+grep 'hit power fraction' "$LOG" | tail -1 || true
+printf 'Latest first-hit mean  : '
+grep -E 'first-hit mean dist|first-hit distance' "$LOG" | tail -1 || true
+
+printf 'Latest profile total   : '
+grep 'wall total' "$LOG" | tail -1 || true
+printf 'Latest thermal share   : '
+grep 'thermal/phase' "$LOG" | tail -1 || true
+printf 'Latest pressure share  : '
+grep '    pressure             =' "$LOG" | tail -1 || true
+printf 'Latest beam share      : '
+grep 'electron beam' "$LOG" | tail -1 || true
+
+printf 'Latest melt-pool       : '
+grep -A8 '^Melt-pool diagnostics' "$LOG" | tail -9 | tr '\n' ' ' || true
+echo
+if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
+    printf 'Latest melt-pool CSV   : '
+    tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv || true
+fi
