@@ -43,6 +43,7 @@ x_end = env_float("X_END", 0.35e-3)
 beam_y = env_float("BEAM_Y", 0.05e-3)
 beam_z = env_float("BEAM_Z", 0.25e-3)
 cool_time = env_float("COOL_TIME", 0.0)
+write_interval_requested = "WRITE_INTERVAL" in os.environ
 write_interval = env_float("WRITE_INTERVAL", 1.0e-4)
 
 if power < 0.0:
@@ -82,6 +83,18 @@ if max(x_start, x_end) + footprint_margin > x_domain_max:
 scan_length = abs(x_end - x_start)
 scan_time = scan_length/speed
 end_time = scan_time + cool_time
+
+# Ensure short diagnostic runs actually reach a normal OpenFOAM write time.
+# If WRITE_INTERVAL was not explicitly supplied, keep the production default
+# of 1e-4 s for long runs but request two writes for shorter runs.
+if not write_interval_requested:
+    write_interval = min(write_interval, 0.5*end_time)
+
+if write_interval > end_time:
+    raise SystemExit(
+        f"WRITE_INTERVAL={write_interval:g} s exceeds endTime={end_time:g} s; "
+        "no write-time diagnostics would be produced"
+    )
 
 position_points = [
     (0.0, (x_start, beam_y, beam_z)),
