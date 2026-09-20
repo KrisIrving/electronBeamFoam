@@ -162,6 +162,67 @@
         {
             ++profileThermalCapHits;
         }
+
+        // Identify where the non-converged liquid-fraction correction lives.
+        // bulk: alpha.metal >= 0.99
+        // iface: 0.01 < alpha.metal < 0.99
+        // void: alpha.metal <= 0.01
+        scalar bulkResidualMax = 0.0;
+        scalar interfaceResidualMax = 0.0;
+        scalar voidResidualMax = 0.0;
+
+        const scalarField& alphaMetalI = alpha1.primitiveField();
+
+        forAll(residual, celli)
+        {
+            const scalar r = residual[celli];
+            const scalar a = alphaMetalI[celli];
+
+            if (a >= 0.99)
+            {
+                bulkResidualMax = max(bulkResidualMax, r);
+            }
+            else if (a <= 0.01)
+            {
+                voidResidualMax = max(voidResidualMax, r);
+            }
+            else
+            {
+                interfaceResidualMax = max(interfaceResidualMax, r);
+            }
+        }
+
+        reduce(bulkResidualMax, maxOp<scalar>());
+        reduce(interfaceResidualMax, maxOp<scalar>());
+        reduce(voidResidualMax, maxOp<scalar>());
+
+        profileThermalBulkResidualSum += bulkResidualMax;
+        profileThermalBulkResidualMax =
+            max(profileThermalBulkResidualMax, bulkResidualMax);
+
+        profileThermalInterfaceResidualSum += interfaceResidualMax;
+        profileThermalInterfaceResidualMax =
+            max(profileThermalInterfaceResidualMax, interfaceResidualMax);
+
+        profileThermalVoidResidualSum += voidResidualMax;
+        profileThermalVoidResidualMax =
+            max(profileThermalVoidResidualMax, voidResidualMax);
+
+        if (iter > maxTCorr)
+        {
+            if (bulkResidualMax > epsilonTol.value())
+            {
+                ++profileThermalBulkCapHits;
+            }
+            if (interfaceResidualMax > epsilonTol.value())
+            {
+                ++profileThermalInterfaceCapHits;
+            }
+            if (voidResidualMax > epsilonTol.value())
+            {
+                ++profileThermalVoidCapHits;
+            }
+        }
     }
 
     gradT = fvc::grad(T);

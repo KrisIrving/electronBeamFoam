@@ -171,6 +171,18 @@ int main(int argc, char *argv[])
     scalar profileThermalFinalResidualSum = 0.0;
     scalar profileThermalFinalResidualMax = 0.0;
 
+    // Region-resolved final liquid-fraction residual diagnostics.
+    // These are diagnostic-only and do not alter the phase-change solve.
+    scalar profileThermalBulkResidualSum = 0.0;
+    scalar profileThermalBulkResidualMax = 0.0;
+    scalar profileThermalInterfaceResidualSum = 0.0;
+    scalar profileThermalInterfaceResidualMax = 0.0;
+    scalar profileThermalVoidResidualSum = 0.0;
+    scalar profileThermalVoidResidualMax = 0.0;
+    label profileThermalBulkCapHits = 0;
+    label profileThermalInterfaceCapHits = 0;
+    label profileThermalVoidCapHits = 0;
+
     scalar profileDeltaTSum = 0.0;
     scalar profileDeltaTMin = GREAT;
     scalar profileDeltaTMax = 0.0;
@@ -466,6 +478,25 @@ int main(int argc, char *argv[])
                        /max(profilePimpleIterations, label(1))
                     << " mean / "
                     << profileThermalFinalResidualMax << " max" << nl
+                    << "    thermal resid bulk   = "
+                    << profileThermalBulkResidualSum
+                       /max(profilePimpleIterations, label(1))
+                    << " meanMax / "
+                    << profileThermalBulkResidualMax << " max" << nl
+                    << "    thermal resid iface  = "
+                    << profileThermalInterfaceResidualSum
+                       /max(profilePimpleIterations, label(1))
+                    << " meanMax / "
+                    << profileThermalInterfaceResidualMax << " max" << nl
+                    << "    thermal resid void   = "
+                    << profileThermalVoidResidualSum
+                       /max(profilePimpleIterations, label(1))
+                    << " meanMax / "
+                    << profileThermalVoidResidualMax << " max" << nl
+                    << "    thermal cap regions  = "
+                    << profileThermalBulkCapHits << " bulk / "
+                    << profileThermalInterfaceCapHits << " iface / "
+                    << profileThermalVoidCapHits << " void" << nl
                     << "    deltaT min/mean/max  = "
                     << profileDeltaTMin << " / "
                     << meanDeltaT << " / "
@@ -514,6 +545,15 @@ int main(int argc, char *argv[])
             profileThermalCapHits = 0;
             profileThermalFinalResidualSum = 0.0;
             profileThermalFinalResidualMax = 0.0;
+            profileThermalBulkResidualSum = 0.0;
+            profileThermalBulkResidualMax = 0.0;
+            profileThermalInterfaceResidualSum = 0.0;
+            profileThermalInterfaceResidualMax = 0.0;
+            profileThermalVoidResidualSum = 0.0;
+            profileThermalVoidResidualMax = 0.0;
+            profileThermalBulkCapHits = 0;
+            profileThermalInterfaceCapHits = 0;
+            profileThermalVoidCapHits = 0;
 
             profileDeltaTSum = 0.0;
             profileDeltaTMin = GREAT;
