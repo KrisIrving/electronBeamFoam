@@ -48,6 +48,10 @@ runTimeModifiable yes;
 // Lightweight stage timing, reported only at write times.
 performanceProfiling true;
 
+// Per-corrector epsilon1 residual output creates very large logs in long EPBF
+// runs. Performance summaries still report thermal-corrector counts.
+thermalCorrectorVerbose false;
+
 adjustTimeStep  yes;
 
 maxCo           0.25;//0.1;

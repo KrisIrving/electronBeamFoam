@@ -131,9 +131,12 @@
 
         //ddte1 = fvc::ddt(epsilon1);
 
-        Info<< "Correcting epsilon1, mean residual = " << meanResidual
-            << ", max residual = " << maxResidual
-            << endl;
+        if (thermalCorrectorVerbose)
+        {
+            Info<< "Correcting epsilon1, mean residual = " << meanResidual
+                << ", max residual = " << maxResidual
+                << endl;
+        }
     }
     while
     (

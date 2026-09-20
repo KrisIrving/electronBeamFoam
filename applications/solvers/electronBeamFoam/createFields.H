@@ -208,6 +208,49 @@ const Switch meltPoolWriteCsv
     meltPoolDiagnosticsProperties.lookupOrDefault<Switch>("writeCSV", true)
 );
 
+const Switch fusionZoneEnabled
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<Switch>
+    (
+        "fusionZoneEnabled",
+        true
+    )
+);
+
+const Switch fusionZoneWriteCsv
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<Switch>
+    (
+        "fusionZoneWriteCSV",
+        true
+    )
+);
+
+const scalar fusionZoneMetalFractionThreshold =
+    meltPoolDiagnosticsProperties.lookupOrDefault<scalar>
+    (
+        "fusionZoneMetalFractionThreshold",
+        0.5
+    );
+
+const Switch fusionZoneSubstrateOnly
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<Switch>
+    (
+        "fusionZoneSubstrateOnly",
+        true
+    )
+);
+
+const fileName fusionZoneCsvFile
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<fileName>
+    (
+        "fusionZoneCsvFile",
+        "fusionZone.csv"
+    )
+);
+
 const scalar meltPoolMetalFractionThreshold =
     meltPoolDiagnosticsProperties.lookupOrDefault<scalar>
     (
@@ -321,7 +364,9 @@ Info<< "Melt-pool diagnostics" << nl
     << "    length direction      = " << meltPoolLengthDirection << nl
     << "    width direction       = " << meltPoolWidthDirection << nl
     << "    depth direction       = " << meltPoolDepthDirection << nl
-    << "    reference surface     = " << meltPoolReferenceSurfacePoint
+    << "    reference surface     = " << meltPoolReferenceSurfacePoint << nl
+    << "    fusion-zone history   = " << fusionZoneEnabled << nl
+    << "    fusion substrate only = " << fusionZoneSubstrateOnly
     << endl;
 
 const word interfaceTrackingScheme
@@ -1007,6 +1052,37 @@ volScalarField liquidMetalCells
     ),
     mesh,
     dimensionedScalar("liquidMetalCells", dimensionSet(0, 0, 0, -0, 0), 0.0)
+);
+
+
+// Peak thermal history and irreversible fusion-zone marker.
+// Both fields are registered so dynamicRefineFvMesh maps them during topology
+// changes and READ_IF_PRESENT preserves them across restarts.
+volScalarField peakTemperature
+(
+    IOobject
+    (
+        "peakTemperature",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    T
+);
+
+volScalarField everMelted
+(
+    IOobject
+    (
+        "everMelted",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("everMelted", dimless, 0.0)
 );
 
 

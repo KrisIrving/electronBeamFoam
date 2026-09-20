@@ -120,6 +120,15 @@ int main(int argc, char *argv[])
         )
     );
 
+    const Switch thermalCorrectorVerbose
+    (
+        runTime.controlDict().lookupOrDefault<Switch>
+        (
+            "thermalCorrectorVerbose",
+            false
+        )
+    );
+
     using profileClock = std::chrono::steady_clock;
 
     const auto profileNow = []()
@@ -337,15 +346,43 @@ int main(int argc, char *argv[])
             }
         }
 
-        // Update instantaneous liquid metal indicator
+        // Update instantaneous liquid metal indicator and irreversible thermal
+        // history. A cell enters everMelted only after metallic material in
+        // that spatial location reaches the Ti-alloy liquidus.
         const volScalarField& alphaMetal =
             mesh.lookupObject<volScalarField>("alpha.metal");
         liquidMetalCells = pos(alphaMetal - 0.5)*pos(epsilon1 - 0.5);
+
+        {
+            scalarField& peakTI = peakTemperature.primitiveFieldRef();
+            scalarField& everMeltedI = everMelted.primitiveFieldRef();
+            const scalarField& TI = T.primitiveField();
+            const scalarField& alphaMetalI = alphaMetal.primitiveField();
+            const scalar liquidus = Tliquidus1.value();
+
+            forAll(TI, celli)
+            {
+                peakTI[celli] = max(peakTI[celli], TI[celli]);
+
+                if
+                (
+                    alphaMetalI[celli] >= fusionZoneMetalFractionThreshold
+                 && TI[celli] >= liquidus
+                )
+                {
+                    everMeltedI[celli] = 1.0;
+                }
+            }
+
+            peakTemperature.correctBoundaryConditions();
+            everMelted.correctBoundaryConditions();
+        }
 
         const bool profileReportNow =
             performanceProfiling && runTime.writeTime();
 
         #include "meltPoolDiagnostics.H"
+        #include "fusionZoneDiagnostics.H"
 
         const auto profileWriteStart = profileNow();
         runTime.write();

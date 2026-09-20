@@ -17,6 +17,14 @@ writeCSV                true;
 metalFractionThreshold  0.5;
 liquidFractionThreshold 0.5;
 
+// Cumulative fusion boundary for comparison with metallographic cross sections.
+// A spatial cell is marked after metallic material reaches Tliquidus.
+fusionZoneEnabled               true;
+fusionZoneWriteCSV              true;
+fusionZoneMetalFractionThreshold 0.5;
+fusionZoneSubstrateOnly         true;
+fusionZoneCsvFile               fusionZone.csv;
+
 // Coordinate convention for the current bare-plate mesh:
 // x = scan/length direction
 // y = beam penetration/depth direction

@@ -28,6 +28,12 @@ fi
     grep -E '^(Melt-pool diagnostics|    cells                 =|    length                =|    width                 =|    depth                 =|    volume                =|    Tmax                  =|    Umax                  =|    recoil max            =)'         "$LOG" || true
     echo
 
+    echo "## Fusion-zone diagnostics"
+    grep -E \
+'^(Fusion-zone diagnostics|    cells                 =|    length                =|    width                 =|    depth                 =|    volume                =|    peak Tmax             =)' \
+        "$LOG" || true
+    echo
+
     echo "## Performance profiles"
     grep -E '^(Performance profile:|    steps                =|    PIMPLE iterations    =|    pressure correctors  =|    thermal correctors   =|    max thermal/TEqn     =|    deltaT min/mean/max  =|    global cells         =|    wall total           =|    mesh update          =|    VOF/interface        =|    properties           =|    electron beam        =|    momentum             =|    thermal/phase        =|    pressure             =|    turbulence           =|    write I/O            =|    other                =)'         "$LOG" || true
     echo
