@@ -39,10 +39,16 @@ grep '    pressure             =' "$LOG" | tail -1 || true
 printf 'Latest beam share      : '
 grep 'electron beam' "$LOG" | tail -1 || true
 
-printf 'Latest melt-pool       : '
-grep -A8 '^Melt-pool diagnostics' "$LOG" | tail -9 | tr '\n' ' ' || true
-echo
+echo 'Latest melt-pool:'
 if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
-    printf 'Latest melt-pool CSV   : '
-    tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv || true
+    tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv | \
+    awk -F',' '
+    {
+        printf "  L = %8.3f um    W = %8.3f um\n", $3*1e6, $4*1e6;
+        printf "  D = %8.3f um    V = %8.6f mm^3\n", $5*1e6, $6*1e9;
+        printf "  Tmax = %8.2f K  Umax = %8.3f m/s\n", $7, $8;
+        printf "  recoil = %8.3f kPa  cells = %d\n", $9/1e3, $2;
+    }'
+else
+    echo '  no meltPool.csv yet'
 fi
