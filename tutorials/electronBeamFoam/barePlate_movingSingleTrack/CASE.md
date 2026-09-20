@@ -12,7 +12,8 @@ cell size used by the stationary case:
 - x: scan direction, -0.5 to +0.5 mm;
 - y: beam/depth direction, 0 to 0.5 mm;
 - z: transverse direction, 0 to 0.5 mm;
-- initial free surface: y = 0.1 mm.
+- initial free surface: y = 0.2 mm;
+- default beam seed plane: y = 0.05 mm, giving 0.15 mm initial vacuum headspace.
 
 The default source moves from x = -0.35 mm to +0.35 mm at 0.5 m/s with
 156 W incident power. These values are placeholders inherited from the
@@ -69,3 +70,15 @@ summary instead:
 This writes `run-summary.txt` with beam diagnostics, melt-pool diagnostics,
 performance profiles, runtime and termination status. Keep the full solver log
 locally for debugging.
+
+
+## Beam seed-plane headspace
+
+The first long moving-track pilot, which used an initial free surface at
+y = 0.1 mm and a beam seed plane at y = 0.05 mm, produced a zero minimum
+first-hit distance at one write time. This means a locally uplifted metal
+surface reached the ray seed plane. The moving-track case now starts the
+substrate at y = 0.2 mm while keeping the beam seed plane at y = 0.05 mm.
+The resulting 150 micrometre vacuum headspace is more robust for recoil-driven
+surface motion and avoids beginning a beamlet inside metal during ordinary
+single-track calibration.

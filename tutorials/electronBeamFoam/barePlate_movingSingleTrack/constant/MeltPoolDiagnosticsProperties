@@ -33,8 +33,9 @@ lengthDirection         (1 0 0);
 widthDirection          (0 0 1);
 depthDirection          (0 1 0);
 
-// Initial metal-vacuum surface is y = 0.1 mm.
-referenceSurfacePoint   (0 0.0001 0);
+// Initial metal-vacuum surface is y = 0.2 mm. The larger vacuum headspace
+// prevents strongly deformed free surfaces from reaching the beam seed plane.
+referenceSurfacePoint   (0 0.0002 0);
 
 csvFile                 meltPool.csv;
 
