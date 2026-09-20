@@ -153,6 +153,15 @@
         profileThermalCorrectors += iter;
         profileMaxThermalCorrectors =
             max(profileMaxThermalCorrectors, label(iter));
+
+        profileThermalFinalResidualSum += maxResidual;
+        profileThermalFinalResidualMax =
+            max(profileThermalFinalResidualMax, maxResidual);
+
+        if (maxResidual > epsilonTol.value() && iter > maxTCorr)
+        {
+            ++profileThermalCapHits;
+        }
     }
 
     gradT = fvc::grad(T);

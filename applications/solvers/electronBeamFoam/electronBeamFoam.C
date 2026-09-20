@@ -167,6 +167,9 @@ int main(int argc, char *argv[])
     label profilePressureCorrectors = 0;
     label profileThermalCorrectors = 0;
     label profileMaxThermalCorrectors = 0;
+    label profileThermalCapHits = 0;
+    scalar profileThermalFinalResidualSum = 0.0;
+    scalar profileThermalFinalResidualMax = 0.0;
 
     scalar profileDeltaTSum = 0.0;
     scalar profileDeltaTMin = GREAT;
@@ -456,6 +459,13 @@ int main(int argc, char *argv[])
                     << profileThermalCorrectors << nl
                     << "    max thermal/TEqn     = "
                     << profileMaxThermalCorrectors << nl
+                    << "    thermal cap hits     = "
+                    << profileThermalCapHits << nl
+                    << "    thermal final resid  = "
+                    << profileThermalFinalResidualSum
+                       /max(profilePimpleIterations, label(1))
+                    << " mean / "
+                    << profileThermalFinalResidualMax << " max" << nl
                     << "    deltaT min/mean/max  = "
                     << profileDeltaTMin << " / "
                     << meanDeltaT << " / "
@@ -501,6 +511,9 @@ int main(int argc, char *argv[])
             profilePressureCorrectors = 0;
             profileThermalCorrectors = 0;
             profileMaxThermalCorrectors = 0;
+            profileThermalCapHits = 0;
+            profileThermalFinalResidualSum = 0.0;
+            profileThermalFinalResidualMax = 0.0;
 
             profileDeltaTSum = 0.0;
             profileDeltaTMin = GREAT;
