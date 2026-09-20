@@ -29,7 +29,7 @@ SCAN_SPEED=0.7 \
 X_START=-0.00035 \
 X_END=0.00035 \
 WRITE_INTERVAL=1e-4 \
-NPROCS=32 \
+NPROCS=48 \
 ./Run_background
 ```
 
@@ -53,3 +53,19 @@ recoil pressure. The same run also prints stage-level performance profiling.
 
 The next step is to replace the placeholder beam/material inputs with a
 documented Ti-6Al-4V EPBF single-track calibration target.
+
+
+## Large solver logs
+
+Long moving-track runs can produce very large `log.electronBeamFoam` files
+because the temperature/phase-change correctors print every linear solve.
+For routine review, do not copy the full log. Generate a compact diagnostic
+summary instead:
+
+```bash
+./SummarizeRun
+```
+
+This writes `run-summary.txt` with beam diagnostics, melt-pool diagnostics,
+performance profiles, runtime and termination status. Keep the full solver log
+locally for debugging.

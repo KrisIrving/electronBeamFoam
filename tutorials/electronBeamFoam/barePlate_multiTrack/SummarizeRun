@@ -1,0 +1,39 @@
+#!/bin/bash
+set -euo pipefail
+
+LOG="${1:-log.electronBeamFoam}"
+OUT="${2:-run-summary.txt}"
+
+if [ ! -f "$LOG" ]; then
+    echo "ERROR: $LOG not found" >&2
+    exit 1
+fi
+
+{
+    echo "# electronBeamFoam compact run summary"
+    echo "# source log: $LOG"
+    echo
+
+    if [ -f log.generateTrack ]; then
+        echo "## Generated track"
+        cat log.generateTrack
+        echo
+    fi
+
+    echo "## Beam diagnostics at write times"
+    grep -E '^(Electron beam:|    position             =|    surface tracking     =|    beamlets             =|    beamlets hit metal   =|    hit power fraction   =|    first-hit mean dist  =|    first-hit min dist   =|    first-hit max dist   =|    incident power       =|    requested absorbed   =|    effective absorbed   =|    integrated deposited =|    power error          =)'         "$LOG" || true
+    echo
+
+    echo "## Melt-pool diagnostics"
+    grep -E '^(Melt-pool diagnostics|    cells                 =|    length                =|    width                 =|    depth                 =|    volume                =|    Tmax                  =|    Umax                  =|    recoil max            =)'         "$LOG" || true
+    echo
+
+    echo "## Performance profiles"
+    grep -E '^(Performance profile:|    steps                =|    PIMPLE iterations    =|    pressure correctors  =|    thermal correctors   =|    max thermal/TEqn     =|    deltaT min/mean/max  =|    global cells         =|    wall total           =|    mesh update          =|    VOF/interface        =|    properties           =|    electron beam        =|    momentum             =|    thermal/phase        =|    pressure             =|    turbulence           =|    write I/O            =|    other                =)'         "$LOG" || true
+    echo
+
+    echo "## Final runtime / termination"
+    grep -E '^(ExecutionTime =|End$|FOAM FATAL ERROR|FOAM Warning)' "$LOG" | tail -50 || true
+} > "$OUT"
+
+echo "Wrote $OUT"

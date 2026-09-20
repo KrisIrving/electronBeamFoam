@@ -2,6 +2,6 @@
 set -euo pipefail
 
 # Launch a quiet detached run. Override e.g. NPROCS=48 ./Run_background
-NPROCS="${NPROCS:-32}"
+NPROCS="${NPROCS:-48}"
 nohup env NPROCS="$NPROCS" ./Allrun_parallel > log.Allrun 2>&1 &
 echo $! > run.pid

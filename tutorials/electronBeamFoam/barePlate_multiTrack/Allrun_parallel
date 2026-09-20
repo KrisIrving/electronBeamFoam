@@ -3,10 +3,10 @@ set -euo pipefail
 
 # Quiet MPI run for electronBeamFoam.
 # Usage:
-#   NPROCS=32 ./Allrun_parallel
+#   NPROCS=48 ./Allrun_parallel
 # All OpenFOAM output is written to log.* files, not the terminal.
 
-NPROCS="${NPROCS:-32}"
+NPROCS="${NPROCS:-48}"
 
 python3 generateSerpentinePath.py > log.generatePath 2>&1
 

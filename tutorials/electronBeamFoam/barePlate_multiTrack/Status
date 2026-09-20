@@ -11,8 +11,9 @@ printf 'Latest execution time : '
 grep 'ExecutionTime = ' "$LOG" | tail -1 || true
 printf 'Latest deltaT         : '
 grep 'deltaT = ' "$LOG" | tail -1 || true
-printf 'Latest first-hit      : '
-grep 'first-hit distance' "$LOG" | tail -1 || true
+# Legacy centralFirstHit distance is intentionally omitted here. For the
+# current multiRayFirstHit model, the mean/min/max first-hit diagnostics below
+# are the relevant quantities.
 printf 'Latest power error    : '
 grep 'power error' "$LOG" | tail -1 || true
 
@@ -23,7 +24,11 @@ grep 'beamlets hit metal' "$LOG" | tail -1 || true
 printf 'Latest hit fraction    : '
 grep 'hit power fraction' "$LOG" | tail -1 || true
 printf 'Latest first-hit mean  : '
-grep -E 'first-hit mean dist|first-hit distance' "$LOG" | tail -1 || true
+grep 'first-hit mean dist' "$LOG" | tail -1 || true
+printf 'Latest first-hit min   : '
+grep 'first-hit min dist' "$LOG" | tail -1 || true
+printf 'Latest first-hit max   : '
+grep 'first-hit max dist' "$LOG" | tail -1 || true
 
 printf 'Latest profile total   : '
 grep 'wall total' "$LOG" | tail -1 || true
