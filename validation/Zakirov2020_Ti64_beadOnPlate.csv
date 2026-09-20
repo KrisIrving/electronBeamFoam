@@ -1,0 +1,7 @@
+source_id,preheat_K,acceleration_kV,current_mA,power_W,scan_speed_mm_s,line_energy_J_mm,nominal_D4sigma_um,experiment_depth_um,experiment_width_um
+Zakirov2020_Table2,296,60,15,900,1000,0.9,500,140,723
+Zakirov2020_Table2,296,60,15,900,3000,0.3,500,51,525
+Zakirov2020_Table2,296,60,15,900,6000,0.15,500,28,365
+Zakirov2020_Table2,973,60,15,900,1000,0.9,500,193,755
+Zakirov2020_Table2,973,60,15,900,3000,0.3,500,77,573
+Zakirov2020_Table2,973,60,15,900,6000,0.15,500,40,435
