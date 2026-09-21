@@ -107,3 +107,31 @@ This is intentionally enabled first in the moving calibration case. The
 stationary regression tutorials retain the legacy default until the short A/B
 regression confirms improved convergence without an unacceptable melt-pool
 shift.
+
+
+## Phase-change convergence criterion
+
+After the interface-property fix, the raw interface residual fell by roughly
+two orders of magnitude while fusion-zone dimensions were essentially
+unchanged, but the legacy 1e-6 raw-max stopping criterion still forced almost
+every temperature solve to the correction cap.
+
+The moving calibration case now uses:
+
+```text
+epsilonTolerance        1e-4;
+phaseChangeResidualMode metalWeightedMax;
+```
+
+For the corrected model, `epsilon1` is the liquid fraction of the metal
+contained in a VOF cell. The energy impact of a liquid-fraction correction in a
+mixed cell scales with the amount of metal in that cell, so convergence is
+tested using:
+
+```text
+max(alpha.metal * abs(Delta epsilon1))
+```
+
+The unweighted/raw maximum residual is still reported separately. Bulk metal
+(alpha ~= 1) is therefore not relaxed by this weighting; only partially filled
+VOF interface cells are scaled according to their metal content.

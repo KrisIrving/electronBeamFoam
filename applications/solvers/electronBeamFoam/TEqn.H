@@ -2,6 +2,7 @@
     int iter = 0;
     scalarField residual(epsilon1.primitiveField().size(), 1.0);
     scalar maxResidual = 1.0;
+    scalar convergenceResidual = 1.0;
     scalar meanResidual = 1.0;
     //scalar Tresidual = 1.0;
 
@@ -189,6 +190,23 @@
 
         maxResidual = gMax(residual);
 
+        convergenceResidual = maxResidual;
+
+        if (phaseChangeResidualMode == "metalWeightedMax")
+        {
+            scalar weightedMax = 0.0;
+            const scalarField& alphaMetalI = alpha1.primitiveField();
+
+            forAll(residual, celli)
+            {
+                weightedMax =
+                    max(weightedMax, alphaMetalI[celli]*residual[celli]);
+            }
+
+            reduce(weightedMax, maxOp<scalar>());
+            convergenceResidual = weightedMax;
+        }
+
         meanResidual = gSum(residual*mesh.V())/gSum(mesh.V().field());
 
         //ddte1 = fvc::ddt(epsilon1);
@@ -196,7 +214,8 @@
         if (thermalCorrectorVerbose)
         {
             Info<< "Correcting epsilon1, mean residual = " << meanResidual
-                << ", max residual = " << maxResidual
+                << ", raw max residual = " << maxResidual
+                << ", convergence residual = " << convergenceResidual
                 << endl;
         }
     }
@@ -205,7 +224,7 @@
         (
             ++iter < minTCorr
          // || (meanResidual > epsilonTol.value())
-         || (maxResidual > epsilonTol.value())
+         || (convergenceResidual > epsilonTol.value())
         )
      && iter <= maxTCorr
     );
@@ -220,7 +239,15 @@
         profileThermalFinalResidualMax =
             max(profileThermalFinalResidualMax, maxResidual);
 
-        if (maxResidual > epsilonTol.value() && iter > maxTCorr)
+        profileThermalConvergenceResidualSum += convergenceResidual;
+        profileThermalConvergenceResidualMax =
+            max
+            (
+                profileThermalConvergenceResidualMax,
+                convergenceResidual
+            );
+
+        if (convergenceResidual > epsilonTol.value() && iter > maxTCorr)
         {
             ++profileThermalCapHits;
         }

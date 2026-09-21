@@ -170,6 +170,8 @@ int main(int argc, char *argv[])
     label profileThermalCapHits = 0;
     scalar profileThermalFinalResidualSum = 0.0;
     scalar profileThermalFinalResidualMax = 0.0;
+    scalar profileThermalConvergenceResidualSum = 0.0;
+    scalar profileThermalConvergenceResidualMax = 0.0;
 
     // Region-resolved final liquid-fraction residual diagnostics.
     // These are diagnostic-only and do not alter the phase-change solve.
@@ -187,7 +189,7 @@ int main(int argc, char *argv[])
     scalar profileDeltaTMin = GREAT;
     scalar profileDeltaTMax = 0.0;
 
-    Info<< "electronBeamFoam build tag = phaseResidualRegions-v2-interfaceFix" << nl
+    Info<< "electronBeamFoam build tag = phaseResidualRegions-v3-weightedConvergence" << nl
         << "\nStarting time loop\n" << endl;
 
     if (performanceProfiling)
@@ -479,6 +481,11 @@ int main(int argc, char *argv[])
                        /max(profilePimpleIterations, label(1))
                     << " mean / "
                     << profileThermalFinalResidualMax << " max" << nl
+                    << "    thermal conv resid   = "
+                    << profileThermalConvergenceResidualSum
+                       /max(profilePimpleIterations, label(1))
+                    << " mean / "
+                    << profileThermalConvergenceResidualMax << " max" << nl
                     << "    thermal resid bulk   = "
                     << profileThermalBulkResidualSum
                        /max(profilePimpleIterations, label(1))
@@ -546,6 +553,8 @@ int main(int argc, char *argv[])
             profileThermalCapHits = 0;
             profileThermalFinalResidualSum = 0.0;
             profileThermalFinalResidualMax = 0.0;
+            profileThermalConvergenceResidualSum = 0.0;
+            profileThermalConvergenceResidualMax = 0.0;
             profileThermalBulkResidualSum = 0.0;
             profileThermalBulkResidualMax = 0.0;
             profileThermalInterfaceResidualSum = 0.0;

@@ -119,11 +119,34 @@ const scalar phaseChangeMetalFractionCutoff =
         0.01
     );
 
+const word phaseChangeResidualMode
+(
+    initialMeltingDict.lookupOrDefault<word>
+    (
+        "phaseChangeResidualMode",
+        "rawMax"
+    )
+);
+
+if
+(
+    phaseChangeResidualMode != "rawMax"
+ && phaseChangeResidualMode != "metalWeightedMax"
+)
+{
+    FatalErrorInFunction
+        << "Unknown phaseChangeResidualMode '" << phaseChangeResidualMode
+        << "'. Valid options are rawMax and metalWeightedMax."
+        << exit(FatalError);
+}
+
 Info<< "Phase-change interface treatment" << nl
     << "    consistentMetalPhaseChange = "
     << consistentMetalPhaseChange << nl
     << "    metal fraction cutoff      = "
-    << phaseChangeMetalFractionCutoff
+    << phaseChangeMetalFractionCutoff << nl
+    << "    residual mode              = "
+    << phaseChangeResidualMode
     << endl;
 
 // -------------------------------------------------------------------------

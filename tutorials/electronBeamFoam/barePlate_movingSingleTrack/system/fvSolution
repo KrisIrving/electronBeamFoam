@@ -86,7 +86,7 @@ MELTING
 {
     minTempCorrector 1;
     maxTempCorrector 20;
-    epsilonTolerance 1e-6;
+    epsilonTolerance 1e-4;
     epsilonRelaxation 0.9;
 
     // Use metal thermophysical phase-change properties throughout resolved
@@ -94,6 +94,12 @@ MELTING
     // that dominated the interface residual in the diagnostic runs.
     consistentMetalPhaseChange true;
     phaseChangeMetalFractionCutoff 0.01;
+
+    // Convergence is measured on alpha.metal*|Delta epsilon_l| because the
+    // latent-energy impact of an interface-cell correction scales with the
+    // amount of metal carried by that VOF cell. Raw residuals remain reported
+    // separately for diagnostics.
+    phaseChangeResidualMode metalWeightedMax;
     
     damperSwitch true;//false;//true;
 }
