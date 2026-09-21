@@ -12,17 +12,18 @@ FoamFile
 
 PowderSim              false;
 
-// This moving-track tutorial is a calibration scaffold. The default source
-// parameters are inherited from the validated stationary-spot case and are
-// NOT claimed to be a calibrated Ti-6Al-4V EPBF parameter set.
+// Zakirov et al. (Additive Manufacturing 35, 101236) Ti-6Al-4V
+// bead-on-plate calibration baseline: 60 kV, 15 mA, 900 W.
+// Nominal D4sigma=500 um is represented initially by rb=250 um for the
+// exp(-2*r^2/rb^2) Gaussian convention.
 
 // surfaceGaussian | volumetricGaussian | tabulatedMC (reserved)
 depositionModel        volumetricGaussian;
 
 absorptivity           0.85;
-beamRadius             70e-6;
+beamRadius             250e-6;
 
-penetrationDepth       20e-6;
+penetrationDepth       18.9e-6;
 maxPenetrationDepth    120e-6;
 minMetalFraction       1e-3;
 
@@ -34,7 +35,7 @@ beamDirection          (0 1 0);
 // metal-vacuum surface rather than from timeVsBeamPosition.
 // fixedReference | centralFirstHit
 surfaceTrackingMode    multiRayFirstHit;
-firstHitSearchRadius   35e-6;
+firstHitSearchRadius   125e-6;
 firstHitNormalThreshold 0.1;
 firstHitAlphaCutoff    1e-3;
 firstHitFallbackMetalFraction 0.5;

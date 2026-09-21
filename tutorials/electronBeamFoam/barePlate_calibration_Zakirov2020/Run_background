@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Launch a quiet detached run.
-# Examples:
-#   NPROCS=16 ./Run_background
-#   BEAM_POWER=180 SCAN_SPEED=0.7 NPROCS=48 ./Run_background
-# All custom track variables are inherited by Allrun_parallel.
+# Zakirov2020 Ti-6Al-4V bead-on-plate calibration.
+# Default: 296 K, 900 W, 3 m/s, 3 mm track, 48 physical MPI cores.
+#
+# Parameter sensitivity example:
+#   BEAM_RADIUS=300e-6 PENETRATION_DEPTH=20e-6 ./Run_background
 NPROCS="${NPROCS:-48}"
 nohup env NPROCS="$NPROCS" ./Allrun_parallel > log.Allrun 2>&1 &
 echo $! > run.pid

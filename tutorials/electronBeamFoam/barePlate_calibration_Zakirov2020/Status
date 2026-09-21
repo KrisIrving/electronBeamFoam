@@ -6,7 +6,7 @@ if [ ! -f "$LOG" ]; then
     exit 0
 fi
 if [ -f log.generateTrack ]; then
-    echo '--- Moving-track input ---'
+    echo '--- Calibration input ---'
     cat log.generateTrack
     echo '--------------------------'
 fi
@@ -69,4 +69,13 @@ if [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
     }'
 else
     echo '  no fusionZone.csv yet'
+fi
+
+echo 'Experiment comparison:'
+if [ -f calibration-comparison.txt ]; then
+    sed 's/^/  /' calibration-comparison.txt
+elif [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
+    python3 CompareExperiment.py 2>/dev/null | sed 's/^/  /' || true
+else
+    echo '  no completed fusionZone.csv yet'
 fi

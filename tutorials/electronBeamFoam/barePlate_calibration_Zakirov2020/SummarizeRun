@@ -50,6 +50,14 @@ fi
     grep -E '^(Performance profile:|    steps                =|    PIMPLE iterations    =|    pressure correctors  =|    thermal correctors   =|    max thermal/TEqn     =|    thermal cap hits     =|    thermal final resid  =|    thermal conv resid   =|    thermal resid bulk   =|    thermal resid iface  =|    thermal resid void   =|    thermal cap regions  =|    deltaT min/mean/max  =|    global cells         =|    wall total           =|    mesh update          =|    VOF/interface        =|    properties           =|    electron beam        =|    momentum             =|    thermal/phase        =|    pressure             =|    turbulence           =|    write I/O            =|    other                =)'         "$LOG" || true
     echo
 
+    echo "## Experimental comparison"
+    if [ -f calibration-comparison.txt ]; then
+        cat calibration-comparison.txt
+    elif [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
+        python3 CompareExperiment.py 2>/dev/null || true
+    fi
+    echo
+
     echo "## Final runtime / termination"
     grep -E '^(ExecutionTime =|End$|FOAM FATAL ERROR|FOAM Warning)' "$LOG" | tail -5 || true
 } > "$OUT"

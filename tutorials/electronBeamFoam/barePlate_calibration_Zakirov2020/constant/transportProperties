@@ -54,7 +54,7 @@ gas
 
 emS                         0.4;
 emL                         0.1;
-TRef                        TRef [0 0 0 1 0 0 0]   300;
+TRef                        TRef [0 0 0 1 0 0 0]   296;
 
 sigma            1.52;
 Marangoni_Constant	-5.5e-4;
