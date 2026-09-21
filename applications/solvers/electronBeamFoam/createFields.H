@@ -99,6 +99,33 @@ IOdictionary transportProperties
     )
 );
 
+// Phase-change interface treatment must be available during createFields,
+// because updateProps.H is called once during field initialization before the
+// main time loop (and therefore before readControls.H).
+const dictionary& initialMeltingDict =
+    mesh.solutionDict().subDict("MELTING");
+
+const bool consistentMetalPhaseChange =
+    initialMeltingDict.lookupOrDefault<bool>
+    (
+        "consistentMetalPhaseChange",
+        false
+    );
+
+const scalar phaseChangeMetalFractionCutoff =
+    initialMeltingDict.lookupOrDefault<scalar>
+    (
+        "phaseChangeMetalFractionCutoff",
+        0.01
+    );
+
+Info<< "Phase-change interface treatment" << nl
+    << "    consistentMetalPhaseChange = "
+    << consistentMetalPhaseChange << nl
+    << "    metal fraction cutoff      = "
+    << phaseChangeMetalFractionCutoff
+    << endl;
+
 // -------------------------------------------------------------------------
 // EPBF-specific physics configuration.
 //
