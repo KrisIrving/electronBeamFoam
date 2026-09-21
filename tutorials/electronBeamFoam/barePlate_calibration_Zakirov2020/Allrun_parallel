@@ -1,0 +1,82 @@
+#!/bin/bash
+set -euo pipefail
+
+# Quiet MPI run for electronBeamFoam.
+# Usage:
+#   NPROCS=48 ./Allrun_parallel
+# All OpenFOAM output is written to log.* files, not the terminal.
+
+NPROCS="${NPROCS:-48}"
+
+# Check that the solver executable is not stale relative to the source tree.
+# A stale binary can silently omit newly added diagnostics after git pull.
+SOLVER_EXE="$(command -v electronBeamFoam || true)"
+if [ -z "$SOLVER_EXE" ] || [ ! -x "$SOLVER_EXE" ]; then
+    echo "ERROR: electronBeamFoam executable not found in PATH." >&2
+    echo "Run ./Allwmake from the repository root first." >&2
+    exit 1
+fi
+
+REPO_ROOT="$(cd ../../.. && pwd)"
+if find "$REPO_ROOT/applications/solvers/electronBeamFoam"         "$REPO_ROOT/src/electronBeamHeatSource"         -type f \( -name '*.C' -o -name '*.H' -o -name 'files' -o -name 'options' \)         -newer "$SOLVER_EXE" -print -quit | grep -q .; then
+    echo "ERROR: electronBeamFoam executable is older than solver/source files." >&2
+    echo "Rebuild with: cd $REPO_ROOT && ./Allwmake" >&2
+    exit 1
+fi
+
+# Preserve tracked runtime-control files so environment-driven parameter sweeps
+# leave the Git worktree clean after the run.
+RUN_INPUT_BACKUP="$(mktemp -d)"
+cp system/controlDict "$RUN_INPUT_BACKUP/controlDict"
+cp constant/timeVsBeamPosition "$RUN_INPUT_BACKUP/timeVsBeamPosition"
+cp constant/timeVsBeamPower "$RUN_INPUT_BACKUP/timeVsBeamPower"
+
+restore_run_inputs()
+{
+    cp "$RUN_INPUT_BACKUP/controlDict" system/controlDict
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPosition" constant/timeVsBeamPosition
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPower" constant/timeVsBeamPower
+    rm -rf "$RUN_INPUT_BACKUP"
+}
+trap restore_run_inputs EXIT INT TERM
+
+python3 generateMovingSingleTrack.py > log.generateTrack 2>&1
+
+# Fresh initial field directory. Remove stale serial reconstruction
+# times as well, otherwise ParaView can mix data from previous runs.
+rm -rf 0 processor*
+rm -rf postProcessing
+rm -f case.foam
+foamListTimes -rm -noZero > log.cleanTimes 2>&1 || true
+cp -r initial 0
+find 0 -name "*.orig" -exec bash -c 'cp "$0" "${0%.orig}"' {} \;
+
+# Keep decomposeParDict and mpirun consistent.
+foamDictionary system/decomposeParDict \
+    -entry numberOfSubdomains -set "$NPROCS" \
+    > log.setNProcs 2>&1
+
+blockMesh > log.blockMesh 2>&1
+setFields > log.setFields 2>&1
+decomposePar -force > log.decomposePar 2>&1
+
+# One MPI rank per physical core. Keep OpenMP libraries single-threaded to
+# avoid accidental oversubscription.  The user's workstation has two sockets
+# with 24 physical cores/socket.  For even NPROCS <= 48, distribute ranks
+# symmetrically across both sockets to reduce NUMA imbalance.
+export OMP_NUM_THREADS=1
+
+MPI_ARGS=()
+if [ "${NUMA_BIND:-1}" = "1" ] && [ "$NPROCS" -le 48 ] && [ $((NPROCS % 2)) -eq 0 ]; then
+    PPR=$((NPROCS / 2))
+    MPI_ARGS+=(--bind-to core --map-by "ppr:${PPR}:socket")
+fi
+
+mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel \
+    > log.electronBeamFoam 2>&1
+
+# Reconstruct dynamic mesh + fields after a successful solver run.
+# Set AUTO_RECONSTRUCT=0 to keep the decomposed result only.
+if [ "${AUTO_RECONSTRUCT:-1}" = "1" ]; then
+    ./Reconstruct > log.Reconstruct 2>&1
+fi
