@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+# Cheap geometry/source preflight only. It is NOT the final experimental
+# comparison because the track is shortened from 3.0 mm to 0.5 mm.
+X_START=-0.00025 \
+X_END=0.00025 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

@@ -64,13 +64,23 @@ fusion-zone L/W/D at the available mesh resolution.
 
 ## Running
 
-Production default:
+Optional short preflight:
+
+```bash
+./Run_preflight
+```
+
+uses a 0.5 mm track only to check the larger calibration mesh, source footprint,
+beam hits and solver stability. It must not be treated as the final
+experimental W/D comparison.
+
+Production reference:
 
 ```bash
 ./Run_background
 ```
 
-uses 48 MPI ranks with 24 physical cores per socket.
+uses the full 3 mm track and 48 MPI ranks with 24 physical cores per socket.
 
 The generator supports source-sensitivity overrides, for example:
 

@@ -27,6 +27,7 @@ preheat = grab("preheat")
 power = grab("power")
 speed_ms = grab("scan speed")
 speed_mm_s = speed_ms*1000.0
+track_length = grab("track length")
 
 target = None
 with targets.open(newline="") as f:
@@ -58,5 +59,10 @@ w_err = 100.0*(w_sim - w_exp)/w_exp
 d_err = 100.0*(d_sim - d_exp)/d_exp
 
 print("Zakirov2020 final fusion-zone comparison")
+if abs(track_length - 3.0e-3) > 1.0e-6:
+    print(
+        f"  note: track length is {track_length*1e3:.3f} mm; "
+        "the reference numerical track length is 3.000 mm"
+    )
 print(f"  Wsim = {w_sim:.3f} um    Wexp = {w_exp:.3f} um    error = {w_err:+.2f}%")
 print(f"  Dsim = {d_sim:.3f} um    Dexp = {d_exp:.3f} um    error = {d_err:+.2f}%")

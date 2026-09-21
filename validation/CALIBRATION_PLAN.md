@@ -22,3 +22,14 @@ Initial source values for stage 1:
 
 Do not fit all three source parameters simultaneously to a single width/depth
 pair. Use the multi-condition dataset to constrain them.
+
+
+Implemented reference tutorial:
+
+```text
+tutorials/electronBeamFoam/barePlate_calibration_Zakirov2020
+```
+
+The default run is the 296 K / 900 W / 3000 mm/s / 3 mm-track baseline.
+Use `Run_preflight` only as a shortened numerical smoke test; quantitative
+experimental comparison should use the full default track.
