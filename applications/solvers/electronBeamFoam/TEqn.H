@@ -105,16 +105,78 @@
         Tcorr = (TLiquidus - TSolidus)*epsilon1 + TSolidus;
         Tcorr.correctBoundaryConditions();
 
-        epsilon1 =
-            max
-            (
-                min
+        if (consistentMetalPhaseChange)
+        {
+            scalarField& epsilon1I = epsilon1.primitiveFieldRef();
+            const scalarField& alphaMetalI = alpha1.primitiveField();
+            const scalarField& TI = T.primitiveField();
+            const scalarField& TcorrI = Tcorr.primitiveField();
+            const scalar epsilonRelax = epsilonRel.value();
+            const scalar latentHeatMetal = LatentHeat1.value();
+
+            forAll(epsilon1I, celli)
+            {
+                if
                 (
-                    epsilon1 + (epsilonRel*cp/LatentHeat)*(T - Tcorr),
-                    scalar(1)
-                ),
-                scalar(0)
-            );
+                    alphaMetalI[celli]
+                  > phaseChangeMetalFractionCutoff
+                )
+                {
+                    const scalar cpMetal =
+                        polycp_m.value(TI[celli]);
+
+                    epsilon1I[celli] =
+                        max
+                        (
+                            min
+                            (
+                                epsilon1I[celli]
+                              + epsilonRelax
+                               *(cpMetal/latentHeatMetal)
+                               *(TI[celli] - TcorrI[celli]),
+                                scalar(1)
+                            ),
+                            scalar(0)
+                        );
+                }
+                else
+                {
+                    // Retain the legacy numerical-void branch. At ordinary
+                    // chamber temperatures its gas transition interval
+                    // (1-10 K) keeps epsilon1=1, avoiding artificial Darcy
+                    // damping of the VOF void phase.
+                    const scalar cpLocal = cp[celli];
+                    const scalar latentLocal = LatentHeat[celli];
+
+                    epsilon1I[celli] =
+                        max
+                        (
+                            min
+                            (
+                                epsilon1I[celli]
+                              + epsilonRelax
+                               *(cpLocal/latentLocal)
+                               *(TI[celli] - TcorrI[celli]),
+                                scalar(1)
+                            ),
+                            scalar(0)
+                        );
+                }
+            }
+        }
+        else
+        {
+            epsilon1 =
+                max
+                (
+                    min
+                    (
+                        epsilon1 + (epsilonRel*cp/LatentHeat)*(T - Tcorr),
+                        scalar(1)
+                    ),
+                    scalar(0)
+                );
+        }
 
         epsilon1.correctBoundaryConditions();
 

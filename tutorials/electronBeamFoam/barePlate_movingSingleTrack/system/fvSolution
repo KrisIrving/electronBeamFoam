@@ -88,6 +88,12 @@ MELTING
     maxTempCorrector 20;
     epsilonTolerance 1e-6;
     epsilonRelaxation 0.9;
+
+    // Use metal thermophysical phase-change properties throughout resolved
+    // metal-containing VOF cells. This removes the alpha-dependent Cp/Lf gain
+    // that dominated the interface residual in the diagnostic runs.
+    consistentMetalPhaseChange true;
+    phaseChangeMetalFractionCutoff 0.01;
     
     damperSwitch true;//false;//true;
 }

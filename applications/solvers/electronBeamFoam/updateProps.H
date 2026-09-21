@@ -20,10 +20,19 @@
     scalarField& TLiquidusI = TLiquidus;
     const scalar Tsolidus1Value = Tsolidus1.value();
     const scalar Tliquidus1Value = Tliquidus1.value();
+    const scalar phaseTransitionCutoff =
+        consistentMetalPhaseChange
+      ? phaseChangeMetalFractionCutoff
+      : 0.05;
+
     forAll(alpha1I, celli)
     {
-        if (alpha1I[celli] > 0.05)
+        if (alpha1I[celli] > phaseTransitionCutoff)
         {
+            // Any cell carrying a resolved amount of metal uses the metal
+            // solidus/liquidus. Interpolating toward the numerical-void
+            // values (1-10 K) creates a non-physical transition interval in
+            // VOF interface cells.
             TSolidusI[celli] = Tsolidus1Value;
             TLiquidusI[celli] = Tliquidus1Value;
         }
@@ -96,8 +105,32 @@
 
     alpha_smoothed = fvc::average(alpha1);
 
-    LatentHeat =
-        alpha_filtered*LatentHeat1 + (1.0 - alpha_filtered)*LatentHeat2;
+    if (consistentMetalPhaseChange)
+    {
+        // epsilon1 is the liquid fraction of the metal carried by a mixed VOF
+        // cell. The mixture density already supplies the leading alpha.metal
+        // weighting in the latent enthalpy transport, so multiplying L_f by
+        // alpha again would approximately introduce an alpha^2 weighting.
+        // Use the metal latent heat in metal-containing cells and keep the
+        // legacy gas value only in near-pure numerical void.
+        scalarField& latentHeatI = LatentHeat.primitiveFieldRef();
+        const scalar latentHeatMetal = LatentHeat1.value();
+        const scalar latentHeatVoid = LatentHeat2.value();
+
+        forAll(latentHeatI, celli)
+        {
+            latentHeatI[celli] =
+                alpha1I[celli] > phaseChangeMetalFractionCutoff
+              ? latentHeatMetal
+              : latentHeatVoid;
+        }
+        LatentHeat.correctBoundaryConditions();
+    }
+    else
+    {
+        LatentHeat =
+            alpha_filtered*LatentHeat1 + (1.0 - alpha_filtered)*LatentHeat2;
+    }
 
     // gradepsilon1 = fvc::grad(epsilon1);
     // gradepsilon1.correctBoundaryConditions();

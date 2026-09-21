@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
     scalar profileDeltaTMin = GREAT;
     scalar profileDeltaTMax = 0.0;
 
-    Info<< "electronBeamFoam build tag = phaseResidualRegions-v1" << nl
+    Info<< "electronBeamFoam build tag = phaseResidualRegions-v2-interfaceFix" << nl
         << "\nStarting time loop\n" << endl;
 
     if (performanceProfiling)
