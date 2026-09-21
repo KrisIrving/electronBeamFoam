@@ -8,6 +8,22 @@ set -euo pipefail
 
 NPROCS="${NPROCS:-48}"
 
+# Check that the solver executable is not stale relative to the source tree.
+# A stale binary can silently omit newly added diagnostics after git pull.
+SOLVER_EXE="$(command -v electronBeamFoam || true)"
+if [ -z "$SOLVER_EXE" ] || [ ! -x "$SOLVER_EXE" ]; then
+    echo "ERROR: electronBeamFoam executable not found in PATH." >&2
+    echo "Run ./Allwmake from the repository root first." >&2
+    exit 1
+fi
+
+REPO_ROOT="$(cd ../../.. && pwd)"
+if find "$REPO_ROOT/applications/solvers/electronBeamFoam"         "$REPO_ROOT/src/electronBeamHeatSource"         -type f \( -name '*.C' -o -name '*.H' -o -name 'files' -o -name 'options' \)         -newer "$SOLVER_EXE" -print -quit | grep -q .; then
+    echo "ERROR: electronBeamFoam executable is older than solver/source files." >&2
+    echo "Rebuild with: cd $REPO_ROOT && ./Allwmake" >&2
+    exit 1
+fi
+
 python3 generateSerpentinePath.py > log.generatePath 2>&1
 
 # Fresh initial field directory. Remove stale serial reconstruction
