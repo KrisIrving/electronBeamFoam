@@ -28,4 +28,4 @@ if [ -f run-summary.txt ] &&    [ -f postProcessing/meltPoolDiagnostics/fusionZo
     [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ] &&         cp postProcessing/meltPoolDiagnostics/meltPool.csv "$BASELINE_DIR/" || true
 fi
 
-EPSILON_TOLERANCE=1e-3 MESH_PROFILE=gradedY X_START=-0.00025 X_END=0.00025 AUTO_RECONSTRUCT=0 ./Run_background
+EPSILON_TOLERANCE=1e-3 MESH_PROFILE=gradedYSmooth X_START=-0.00025 X_END=0.00025 AUTO_RECONSTRUCT=0 ./Run_background

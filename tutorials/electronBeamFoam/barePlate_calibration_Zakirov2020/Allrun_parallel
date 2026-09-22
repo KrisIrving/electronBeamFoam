@@ -20,10 +20,10 @@ NPROCS="${NPROCS:-48}"
 MESH_PROFILE="${MESH_PROFILE:-uniformFine}"
 
 case "$MESH_PROFILE" in
-    uniformFine|gradedY) ;;
+    uniformFine|gradedY|gradedYSmooth) ;;
     *)
         echo "ERROR: unknown MESH_PROFILE '$MESH_PROFILE'." >&2
-        echo "Valid values: uniformFine, gradedY" >&2
+        echo "Valid values: uniformFine, gradedY, gradedYSmooth" >&2
         exit 1
         ;;
 esac
@@ -73,9 +73,16 @@ trap restore_run_inputs EXIT INT TERM
 python3 generateCalibrationTrack.py > log.generateTrack 2>&1
 echo "  mesh profile   = $MESH_PROFILE" >> log.generateTrack
 
-if [ "$MESH_PROFILE" = "gradedY" ]; then
-    cp system/blockMeshDict.gradedY system/blockMeshDict
-fi
+case "$MESH_PROFILE" in
+    uniformFine)
+        ;;
+    gradedY)
+        cp system/blockMeshDict.gradedY system/blockMeshDict
+        ;;
+    gradedYSmooth)
+        cp system/blockMeshDict.gradedYSmooth system/blockMeshDict
+        ;;
+esac
 
 # Fresh initial field directory. Remove stale serial reconstruction
 # times as well, otherwise ParaView can mix data from previous runs.

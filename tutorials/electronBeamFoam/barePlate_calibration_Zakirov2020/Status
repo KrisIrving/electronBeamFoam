@@ -79,3 +79,33 @@ elif [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
 else
     echo '  no completed fusionZone.csv yet'
 fi
+
+echo 'Run health:'
+ACTIVE=0
+if [ -f run.pid ]; then
+    RP="$(cat run.pid 2>/dev/null || true)"
+    if [ -n "$RP" ] && kill -0 "$RP" 2>/dev/null; then
+        ACTIVE=1
+        printf '  Allrun PID = %s (active)\n' "$RP"
+    else
+        printf '  run.pid = %s (not active)\n' "${RP:-unknown}"
+    fi
+else
+    echo '  no run.pid'
+fi
+
+if [ -f "$LOG" ]; then
+    NOW="$(date +%s)"
+    MTIME="$(stat -c %Y "$LOG" 2>/dev/null || echo "$NOW")"
+    AGE=$((NOW - MTIME))
+    printf '  log age = %d s\n' "$AGE"
+
+    if [ "$ACTIVE" -eq 1 ] && [ "$AGE" -ge 300 ]; then
+        echo '  WARNING: active process but solver log has not advanced for >=300 s.'
+        echo '  Last solver lines:'
+        tail -8 "$LOG" | sed 's/^/    /'
+        if tail -20 "$LOG" | grep -Eq 'Selected .*cells for refinement|Refined from|Unrefined from'; then
+            echo '  Suspect stage: dynamic mesh topology update / field mapping.'
+        fi
+    fi
+fi

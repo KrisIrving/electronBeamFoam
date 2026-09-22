@@ -19,3 +19,16 @@ Profiles:
 The graded mesh is selected only with `MESH_PROFILE=gradedY`. The reference
 uniform mesh remains the default until the 0.5 mm A/B comparison demonstrates
 that fusion-zone width/depth are not materially changed.
+
+
+## Abrupt gradedY stall and replacement
+
+The abrupt three-block candidate reached approximately 7.53e-05 s in the
+900 W preflight and then failed to return from a parallel dynamic mesh topology
+update. The last solver messages were refinement/unrefinement reports; no next
+alpha/T/pressure solve was reached. This is treated as a failed mesh candidate,
+not as a physical/numerical timestep-convergence failure.
+
+The next A/B uses `gradedYSmooth`, a single block with OpenFOAM multi-grading.
+Its 66 y cells transition continuously into and out of the 6.25 um near-surface
+band. Base count is 696,960 (-31.25% vs uniformFine).

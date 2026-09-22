@@ -236,3 +236,34 @@ validation/Zakirov2020_preflight_tol1e-3_uniformFine.json
 
 so mesh comparisons no longer depend on a mutable local
 `comparisons/` directory.
+
+
+## Parallel AMR stall in abrupt gradedY
+
+The first `gradedY` candidate used abrupt y-cell-size jumps
+(12.5 -> 6.25 -> 25 um) across three block interfaces. During the 900 W
+preflight it advanced normally to about 7.53e-05 s, then stopped returning from
+a dynamicRefineFvMesh topology update immediately after reporting refine and
+unrefine operations. MPI ranks remained alive and mostly busy, while the solver
+log stopped advancing for more than an hour.
+
+That candidate is retained for provenance but is no longer used by
+`Run_meshProbe`.
+
+The replacement `gradedYSmooth` is a single block with multi-grading in y.
+It preserves a 6.25 um near-surface band but transitions smoothly to coarser
+far-field cells:
+
+```text
+0.00 - 0.15 mm : 16 graded cells, ~13.3 -> 6.25 um
+0.15 - 0.35 mm : 32 uniform cells, 6.25 um
+0.35 - 0.60 mm : 18 graded cells, 6.25 -> ~25.7 um
+```
+
+It has 696,960 base cells, a 31.25% reduction from the 1,013,760-cell
+uniformFine reference. The initial surface remains exactly on a cell face.
+
+`Status` now also reports solver-log age and warns when an active process has
+not written for five minutes. If the last lines are AMR refine/unrefine
+messages, it identifies dynamic mesh topology update/field mapping as the
+suspect stage.

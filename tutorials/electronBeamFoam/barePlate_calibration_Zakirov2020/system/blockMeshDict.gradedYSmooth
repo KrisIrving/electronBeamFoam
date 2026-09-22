@@ -1,0 +1,114 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| Zakirov2020 calibration candidate: smooth single-block graded-y mesh        |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+convertToMeters 0.001;
+
+vertices
+(
+    (-2.2 0   0)
+    ( 2.2 0   0)
+    ( 2.2 0.6 0)
+    (-2.2 0.6 0)
+    (-2.2 0   1.5)
+    ( 2.2 0   1.5)
+    ( 2.2 0.6 1.5)
+    (-2.2 0.6 1.5)
+);
+
+blocks
+(
+    // One topologically simple block. The y direction uses three smooth
+    // grading sections. Section lengths and cell fractions are normalized by
+    // blockMesh; the 66 y cells resolve to 16 / 32 / 18 cells.
+    //
+    // y=0.15 and y=0.35 mm are grading-section boundaries, not block
+    // interfaces. Cell size is continuous to approximately 6.25 um at both
+    // boundaries. The initial metal surface y=0.20 mm lies eight 6.25-um
+    // cells into the middle section, exactly on a cell face.
+    hex (0 1 2 3 4 5 6 7) (176 66 60)
+    simpleGrading
+    (
+        1
+        (
+            // length fraction, cell fraction, end/start cell-size ratio
+            (0.25       0.2424242424 0.4690299837)
+            (0.3333333333 0.4848484848 1)
+            (0.4166666667 0.2727272727 4.112920307)
+        )
+        1
+    )
+);
+
+edges
+(
+);
+
+boundary
+(
+    lowerWall
+    {
+        type wall;
+        faces
+        (
+            (3 7 6 2)
+        );
+    }
+
+    atmosphere
+    {
+        type patch;
+        faces
+        (
+            (1 5 4 0)
+        );
+    }
+
+    rightWall
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+
+    leftWall
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+
+    frontAndBack
+    {
+        type patch;
+        faces
+        (
+            (0 3 2 1)
+            (5 6 7 4)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// Base cells: 176 * 66 * 60 = 696960
+// Uniform-fine reference: 176 * 96 * 60 = 1013760
+// Base-cell reduction: 31.25%
+//
+// The older abrupt three-block gradedY candidate is retained only for
+// provenance. It exhibited a parallel dynamic-mesh stall during the 900 W
+// preflight and is no longer selected by Run_meshProbe.
+// ************************************************************************* //
