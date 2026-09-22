@@ -56,7 +56,7 @@ max_penetration = env_float("MAX_PENETRATION_DEPTH", 120e-6)
 cool_time = env_float("COOL_TIME", 0.0)
 write_requested = "WRITE_INTERVAL" in os.environ
 write_interval = env_float("WRITE_INTERVAL", 1.0e-4)
-epsilon_tolerance = env_float("EPSILON_TOLERANCE", 1.0e-4)
+epsilon_tolerance = env_float("EPSILON_TOLERANCE", 1.0e-3)
 max_temp_corrector = int(env_float("MAX_TEMP_CORRECTOR", 20))
 
 for name, value in (

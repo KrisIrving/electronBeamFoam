@@ -33,3 +33,11 @@ tutorials/electronBeamFoam/barePlate_calibration_Zakirov2020
 The default run is the 296 K / 900 W / 3000 mm/s / 3 mm-track baseline.
 Use `Run_preflight` only as a shortened numerical smoke test; quantitative
 experimental comparison should use the full default track.
+
+
+Numerical calibration baseline update:
+- the 900 W preflight A/B accepted `epsilonTolerance=1e-3`;
+- W/D/L were unchanged at the reported mesh resolution;
+- fusion-zone volume shifted by +0.184%;
+- wall-clock speedup was 1.356x;
+- the next gate is the uniformFine vs gradedY mesh A/B.

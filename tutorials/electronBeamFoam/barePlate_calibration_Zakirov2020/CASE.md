@@ -55,7 +55,7 @@ This case uses the validated moving-case settings:
 ```text
 consistentMetalPhaseChange true;
 phaseChangeMetalFractionCutoff 0.01;
-epsilonTolerance 1e-4;
+epsilonTolerance 1e-3;
 phaseChangeResidualMode metalWeightedMax;
 ```
 
@@ -198,3 +198,20 @@ Then:
 This performs the same 0.5 mm / 900 W / 3 m/s trajectory with
 `MESH_PROFILE=gradedY` and compares fusion-zone geometry, final cell count and
 wall time against the archived uniform-fine 1e-3 result.
+
+
+## Tolerance A/B accepted
+
+The 0.5 mm, 900 W, 3 m/s A/B test changed epsilonTolerance from 1e-4 to
+1e-3 with the following result:
+
+- fusion-zone width: unchanged at the reported mesh resolution;
+- fusion-zone depth: unchanged at the reported mesh resolution;
+- fusion-zone length: unchanged at the reported mesh resolution;
+- fusion-zone volume: +0.184%;
+- ClockTime: 19112 s -> 14091 s (1.356x speedup);
+- developed-stage thermal cap hits: 2614 -> 59.
+
+The calibration default is therefore now epsilonTolerance=1e-3. The raw and
+metal-weighted residual diagnostics remain enabled so future high-power runs
+can expose any loss of convergence.
