@@ -17,7 +17,7 @@ fi
 # All OpenFOAM output is written to log.* files, not the terminal.
 
 NPROCS="${NPROCS:-48}"
-MESH_PROFILE="${MESH_PROFILE:-uniformFine}"
+MESH_PROFILE="${MESH_PROFILE:-gradedYSmooth}"
 
 case "$MESH_PROFILE" in
     uniformFine|gradedY|gradedYSmooth) ;;

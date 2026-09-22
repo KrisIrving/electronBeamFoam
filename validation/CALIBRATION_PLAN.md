@@ -41,3 +41,12 @@ Numerical calibration baseline update:
 - fusion-zone volume shifted by +0.184%;
 - wall-clock speedup was 1.356x;
 - the next gate is the uniformFine vs gradedY mesh A/B.
+
+
+Mesh baseline update:
+- `gradedYSmooth` accepted as the calibration default;
+- W/D/L unchanged versus uniformFine at reported resolution;
+- fusion-zone volume -0.097%;
+- final dynamic cell count -14.19%;
+- ClockTime 14091 -> 9626 s (1.464x);
+- next performance gate: pressure linear-solver A/B on the same 0.5 mm case.

@@ -31,7 +31,7 @@ old_fz = baseline["fusionZone"]
 
 print("Calibration mesh A/B")
 print("  baseline = uniformFine, base cells 1,013,760")
-print("  probe    = gradedY,    base cells   570,240 (-43.75%)")
+print("  probe    = gradedYSmooth, base cells 696,960 (-31.25%)")
 
 for label, key, scale, unit in (
     ("W", "width_m", 1e6, "um"),

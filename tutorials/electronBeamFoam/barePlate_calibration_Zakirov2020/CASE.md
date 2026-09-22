@@ -267,3 +267,25 @@ uniformFine reference. The initial surface remains exactly on a cell face.
 not written for five minutes. If the last lines are AMR refine/unrefine
 messages, it identifies dynamic mesh topology update/field mapping as the
 suspect stage.
+
+
+## gradedYSmooth accepted
+
+The smooth graded-y candidate completed the full 0.5 mm high-power preflight
+without the AMR stall seen in the abrupt multi-block candidate.
+
+Compared with the accepted uniformFine / epsilonTolerance=1e-3 baseline:
+
+- fusion-zone W/D/L: unchanged at reported resolution;
+- fusion-zone volume: -0.097%;
+- final global cells: 2,241,196 -> 1,923,255 (-14.19%);
+- ClockTime: 14,091 s -> 9,626 s (1.464x speedup);
+- developed-stage thermal cap hits: 59 -> 7.
+
+The base mesh itself contains 696,960 cells (-31.25% vs uniformFine).
+The mesh passed all checkMesh topology and geometry checks, including zero
+non-orthogonality and maximum aspect ratio 4.
+
+`gradedYSmooth` is therefore the calibration default mesh profile. The
+accepted result is committed under validation for subsequent pressure-solver
+A/B tests.

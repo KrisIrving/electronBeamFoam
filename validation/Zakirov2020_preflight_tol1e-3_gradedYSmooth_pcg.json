@@ -1,0 +1,43 @@
+{
+  "source": "accepted 0.5 mm Zakirov2020 preflight, epsilonTolerance=1e-3, gradedYSmooth, PCG/DIC pressure",
+  "track_length_m": 0.0005,
+  "power_W": 900,
+  "scan_speed_m_s": 3,
+  "epsilonTolerance": 0.001,
+  "mesh_profile": "gradedYSmooth",
+  "pressure_profile": "pcg",
+  "base_cells": 696960,
+  "fusionZone": {
+    "length_m": 0.000685187253281,
+    "width_m": 0.000435187253281,
+    "depth_m": 0.0000609995065513,
+    "volume_m3": 5.834838436e-12,
+    "peakTmax_K": 3370.86252365
+  },
+  "meltPool": {
+    "length_m": 0.000678937253281,
+    "width_m": 0.000441437253281,
+    "depth_m": 0.0000672495065506,
+    "volume_m3": 6.74498422293e-12,
+    "Tmax_K": 3370.86252365,
+    "Umax_m_s": 11.8443068831,
+    "recoilMax_Pa": 21418.9087934
+  },
+  "final_interval": {
+    "steps": 3638,
+    "global_cells": 1923255,
+    "thermal_cap_hits": 7,
+    "thermal_correctors": 13352,
+    "thermal_conv_resid_mean": 0.0005720975084,
+    "thermal_conv_resid_max": 0.009195918092,
+    "wall_total_s": 6986.456815,
+    "mesh_update_s": 792.7570574,
+    "vof_interface_s": 997.1655072,
+    "properties_s": 203.8869574,
+    "electron_beam_s": 416.3380543,
+    "momentum_s": 564.9979841,
+    "thermal_phase_s": 1169.058283,
+    "pressure_s": 2946.858389
+  },
+  "clock_time_s": 9626
+}
