@@ -123,3 +123,33 @@ Dsim vs Dexp=51 um
 Do not fit absorptivity, beam radius and penetration depth simultaneously from
 this single condition. This case establishes the first baseline; the 1000 and
 6000 mm/s conditions and the 973 K preheat family are used to constrain trends.
+
+
+## High-power convergence A/B
+
+The first 900 W / 3 m/s / 0.5 mm preflight completed normally but was much
+more expensive than the low-power regression. In the developed second half,
+the metal-weighted convergence residual again exceeded 1e-4 in many interface
+cells and roughly 60% of temperature solves reached maxTempCorrector.
+
+Before the full 3 mm production run, use:
+
+```bash
+./Run_toleranceProbe
+```
+
+This archives the current 1e-4 preflight under
+`comparisons/preflight_tol1e-4` and repeats the identical 0.5 mm trajectory
+with `EPSILON_TOLERANCE=1e-3`.
+
+After completion:
+
+```bash
+./SummarizeRun
+./CompareTolerance.py
+```
+
+Accept the looser tolerance only if the fusion-zone W/D shift remains within
+the available mesh resolution while thermal cap hits and wall time decrease
+materially. The full 3 mm calibration should not be started before this A/B
+gate is resolved.

@@ -30,6 +30,7 @@ control_dict = root / "system" / "controlDict"
 beam_props = constant / "ElectronBeamProperties"
 transport_props = constant / "transportProperties"
 initial_t = root / "initial" / "T"
+fv_solution = root / "system" / "fvSolution"
 
 def env_float(name, default):
     raw = os.environ.get(name, str(default))
@@ -55,6 +56,8 @@ max_penetration = env_float("MAX_PENETRATION_DEPTH", 120e-6)
 cool_time = env_float("COOL_TIME", 0.0)
 write_requested = "WRITE_INTERVAL" in os.environ
 write_interval = env_float("WRITE_INTERVAL", 1.0e-4)
+epsilon_tolerance = env_float("EPSILON_TOLERANCE", 1.0e-4)
+max_temp_corrector = int(env_float("MAX_TEMP_CORRECTOR", 20))
 
 for name, value in (
     ("PREHEAT_K", preheat),
@@ -65,10 +68,14 @@ for name, value in (
     ("PENETRATION_DEPTH", penetration),
     ("MAX_PENETRATION_DEPTH", max_penetration),
     ("WRITE_INTERVAL", write_interval),
+    ("EPSILON_TOLERANCE", epsilon_tolerance),
 ):
+
     if value <= 0:
         raise SystemExit(f"{name} must be > 0")
 
+if max_temp_corrector < 1:
+    raise SystemExit("MAX_TEMP_CORRECTOR must be >= 1")
 if not (0 < absorptivity <= 1):
     raise SystemExit("ABSORPTIVITY must be in (0,1]")
 if x_start == x_end:
@@ -139,6 +146,17 @@ if n != 1:
     raise SystemExit("Could not update initial T")
 initial_t.write_text(t_text)
 
+fv_text = fv_solution.read_text()
+fv_text = replace_scalar(fv_text, "epsilonTolerance", epsilon_tolerance)
+fv_text, n = re.subn(
+    r"(^\s*maxTempCorrector\s+)[^;]+;",
+    rf"\g<1>{max_temp_corrector};",
+    fv_text, count=1, flags=re.M
+)
+if n != 1:
+    raise SystemExit("Could not update maxTempCorrector")
+fv_solution.write_text(fv_text)
+
 position_rows = [
     (0.0, (x_start, beam_y, beam_z)),
     (scan_time, (x_end, beam_y, beam_z)),
@@ -182,6 +200,8 @@ print(f"  line energy    = {line_energy:.9g} J/m")
 print(f"  absorptivity   = {absorptivity:.9g}")
 print(f"  beam radius    = {beam_radius:.9g} m")
 print(f"  penetration    = {penetration:.9g} m")
+print(f"  epsilon tol    = {epsilon_tolerance:.9g}")
+print(f"  max T corr     = {max_temp_corrector}")
 print(f"  beam seed      = ({x_start:.9g}, {beam_y:.9g}, {beam_z:.9g}) m")
 print(f"  write interval = {write_interval:.9g} s")
 print("  experiment W   = 525 um")

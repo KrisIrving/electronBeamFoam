@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+# High-power convergence A/B probe.
+# Archives the current preflight result, then repeats the identical 0.5 mm
+# trajectory with epsilonTolerance=1e-3.
+BASELINE_DIR="comparisons/preflight_tol1e-4"
+
+if [ -f run-summary.txt ] || [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
+    mkdir -p "$BASELINE_DIR"
+    [ -f run-summary.txt ] && cp run-summary.txt "$BASELINE_DIR/"
+    [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ] &&         cp postProcessing/meltPoolDiagnostics/fusionZone.csv "$BASELINE_DIR/"
+    [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ] &&         cp postProcessing/meltPoolDiagnostics/meltPool.csv "$BASELINE_DIR/"
+    [ -f calibration-comparison.txt ] &&         cp calibration-comparison.txt "$BASELINE_DIR/"
+fi
+
+EPSILON_TOLERANCE=1e-3 \
+X_START=-0.00025 \
+X_END=0.00025 \
+AUTO_RECONSTRUCT=0 \
+./Run_background
