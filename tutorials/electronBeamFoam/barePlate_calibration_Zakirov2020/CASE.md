@@ -289,3 +289,36 @@ non-orthogonality and maximum aspect ratio 4.
 `gradedYSmooth` is therefore the calibration default mesh profile. The
 accepted result is committed under validation for subsequent pressure-solver
 A/B tests.
+
+
+## Pressure-solver A/B
+
+After accepting `gradedYSmooth`, pressure is the dominant remaining solver
+cost: about 42% of the developed-stage wall time in the 900 W preflight.
+
+The reference remains:
+
+```text
+p_rgh: PCG + DIC
+tolerance 1e-7
+relTol 0.05
+```
+
+An optional GAMG profile is provided in `system/fvSolution.GAMG` with the
+same absolute and relative tolerances and a DICGaussSeidel smoother.
+
+Run the strict A/B with:
+
+```bash
+./Run_pressureProbe
+```
+
+After completion:
+
+```bash
+./SummarizeRun
+./ComparePressure.py | tee pressure-comparison.txt
+```
+
+Only the pressure linear solver changes; source, mesh, phase-change settings,
+track length and PIMPLE corrector count remain fixed.

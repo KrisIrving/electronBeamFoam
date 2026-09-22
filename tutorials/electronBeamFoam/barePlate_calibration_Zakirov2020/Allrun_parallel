@@ -18,12 +18,22 @@ fi
 
 NPROCS="${NPROCS:-48}"
 MESH_PROFILE="${MESH_PROFILE:-gradedYSmooth}"
+PRESSURE_PROFILE="${PRESSURE_PROFILE:-pcg}"
 
 case "$MESH_PROFILE" in
     uniformFine|gradedY|gradedYSmooth) ;;
     *)
         echo "ERROR: unknown MESH_PROFILE '$MESH_PROFILE'." >&2
         echo "Valid values: uniformFine, gradedY, gradedYSmooth" >&2
+        exit 1
+        ;;
+esac
+
+case "$PRESSURE_PROFILE" in
+    pcg|gamg) ;;
+    *)
+        echo "ERROR: unknown PRESSURE_PROFILE '$PRESSURE_PROFILE'." >&2
+        echo "Valid values: pcg, gamg" >&2
         exit 1
         ;;
 esac
@@ -72,8 +82,13 @@ restore_run_inputs()
 }
 trap restore_run_inputs EXIT INT TERM
 
+if [ "$PRESSURE_PROFILE" = "gamg" ]; then
+    cp system/fvSolution.GAMG system/fvSolution
+fi
+
 python3 generateCalibrationTrack.py > log.generateTrack 2>&1
 echo "  mesh profile   = $MESH_PROFILE" >> log.generateTrack
+echo "  pressure prof  = $PRESSURE_PROFILE" >> log.generateTrack
 
 case "$MESH_PROFILE" in
     uniformFine)
