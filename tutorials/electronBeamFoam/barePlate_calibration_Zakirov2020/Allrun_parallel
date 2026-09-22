@@ -55,6 +55,7 @@ cp constant/transportProperties "$RUN_INPUT_BACKUP/transportProperties"
 cp initial/T "$RUN_INPUT_BACKUP/T"
 cp system/fvSolution "$RUN_INPUT_BACKUP/fvSolution"
 cp system/blockMeshDict "$RUN_INPUT_BACKUP/blockMeshDict"
+cp system/decomposeParDict "$RUN_INPUT_BACKUP/decomposeParDict"
 
 restore_run_inputs()
 {
@@ -66,6 +67,7 @@ restore_run_inputs()
     cp "$RUN_INPUT_BACKUP/T" initial/T
     cp "$RUN_INPUT_BACKUP/fvSolution" system/fvSolution
     cp "$RUN_INPUT_BACKUP/blockMeshDict" system/blockMeshDict
+    cp "$RUN_INPUT_BACKUP/decomposeParDict" system/decomposeParDict
     rm -rf "$RUN_INPUT_BACKUP"
 }
 trap restore_run_inputs EXIT INT TERM
