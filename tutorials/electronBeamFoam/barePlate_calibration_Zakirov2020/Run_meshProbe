@@ -5,20 +5,27 @@ set -euo pipefail
 # completed and its numerical/physical result has been accepted.
 BASELINE_DIR="comparisons/preflight_tol1e-3_uniformFine"
 
-if [ -f log.electronBeamFoam ]; then
-    ./SummarizeRun >/dev/null
-fi
+guard_no_active_run()
+{
+    exec 7>.electronBeamFoam.run.lock
+    if ! flock -n 7; then
+        echo "ERROR: an electronBeamFoam run is already active in this case." >&2
+        echo "Do not launch a second probe. Use ./Status." >&2
+        exit 2
+    fi
+    flock -u 7
+}
 
-if [ ! -f run-summary.txt ] ||    [ ! -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
-    echo "ERROR: no completed tol=1e-3 uniformFine preflight to archive." >&2
-    echo "Finish Run_toleranceProbe and review CompareTolerance.py first." >&2
-    exit 1
-fi
+guard_no_active_run
 
-mkdir -p "$BASELINE_DIR"
-cp run-summary.txt "$BASELINE_DIR/"
-cp postProcessing/meltPoolDiagnostics/fusionZone.csv "$BASELINE_DIR/"
-[ -f postProcessing/meltPoolDiagnostics/meltPool.csv ] &&     cp postProcessing/meltPoolDiagnostics/meltPool.csv "$BASELINE_DIR/"
-[ -f calibration-comparison.txt ] &&     cp calibration-comparison.txt "$BASELINE_DIR/"
+# The accepted uniformFine/tol1e-3 baseline is committed under validation/,
+# so an accidental or cleaned local comparisons/ directory cannot destroy the
+# reference. Preserve current local files only as an optional convenience.
+if [ -f run-summary.txt ] &&    [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
+    mkdir -p "$BASELINE_DIR"
+    cp run-summary.txt "$BASELINE_DIR/" || true
+    cp postProcessing/meltPoolDiagnostics/fusionZone.csv "$BASELINE_DIR/" || true
+    [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ] &&         cp postProcessing/meltPoolDiagnostics/meltPool.csv "$BASELINE_DIR/" || true
+fi
 
 EPSILON_TOLERANCE=1e-3 MESH_PROFILE=gradedY X_START=-0.00025 X_END=0.00025 AUTO_RECONSTRUCT=0 ./Run_background

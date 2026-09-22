@@ -6,6 +6,19 @@ set -euo pipefail
 # trajectory with epsilonTolerance=1e-3.
 BASELINE_DIR="comparisons/preflight_tol1e-4"
 
+guard_no_active_run()
+{
+    exec 7>.electronBeamFoam.run.lock
+    if ! flock -n 7; then
+        echo "ERROR: an electronBeamFoam run is already active in this case." >&2
+        echo "Do not launch a second probe. Use ./Status." >&2
+        exit 2
+    fi
+    flock -u 7
+}
+
+guard_no_active_run
+
 if [ -f run-summary.txt ] || [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
     mkdir -p "$BASELINE_DIR"
     [ -f run-summary.txt ] && cp run-summary.txt "$BASELINE_DIR/"

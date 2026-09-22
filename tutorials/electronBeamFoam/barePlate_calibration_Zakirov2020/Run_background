@@ -3,9 +3,29 @@ set -euo pipefail
 
 # Zakirov2020 Ti-6Al-4V bead-on-plate calibration.
 # Default: 296 K, 900 W, 3 m/s, 3 mm track, 48 physical MPI cores.
-#
-# Parameter sensitivity example:
-#   BEAM_RADIUS=300e-6 PENETRATION_DEPTH=20e-6 ./Run_background
 NPROCS="${NPROCS:-48}"
+
+if [ -f run.pid ]; then
+    OLD_PID="$(cat run.pid 2>/dev/null || true)"
+    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+        OLD_CMD="$(ps -p "$OLD_PID" -o cmd= 2>/dev/null || true)"
+        if [[ "$OLD_CMD" == *Allrun_parallel* ]]; then
+            echo "ERROR: an Allrun_parallel job is already active (PID $OLD_PID)." >&2
+            echo "Use ./Status instead of launching another run." >&2
+            exit 2
+        fi
+    fi
+fi
+
+# If the advisory lock is currently held, refuse before creating a new job.
+exec 8>.electronBeamFoam.run.lock
+if ! flock -n 8; then
+    echo "ERROR: this case directory is already locked by an active run." >&2
+    echo "Use ./Status instead." >&2
+    exit 2
+fi
+flock -u 8
+
 nohup env NPROCS="$NPROCS" ./Allrun_parallel > log.Allrun 2>&1 &
 echo $! > run.pid
+echo "Started Allrun_parallel PID $(cat run.pid)"

@@ -215,3 +215,24 @@ The 0.5 mm, 900 W, 3 m/s A/B test changed epsilonTolerance from 1e-4 to
 The calibration default is therefore now epsilonTolerance=1e-3. The raw and
 metal-weighted residual diagnostics remain enabled so future high-power runs
 can expose any loss of convergence.
+
+
+## Duplicate-run protection
+
+Calibration runs are destructive to the case-local `processor*`,
+`postProcessing` and log directories. Starting two runs in the same case
+directory is therefore invalid.
+
+`Allrun_parallel` now holds an advisory `flock` for its full lifetime.
+`Run_background`, `Run_toleranceProbe` and `Run_meshProbe` refuse to
+launch or archive data while that lock is held.
+
+The accepted 0.5 mm / epsilonTolerance=1e-3 / uniformFine mesh baseline is
+also committed as:
+
+```text
+validation/Zakirov2020_preflight_tol1e-3_uniformFine.json
+```
+
+so mesh comparisons no longer depend on a mutable local
+`comparisons/` directory.

@@ -1,6 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
+# Hold an advisory lock for the complete case run. This prevents two
+# Allrun_parallel instances from deleting/reusing the same processor*,
+# postProcessing and log files.
+exec 9>.electronBeamFoam.run.lock
+if ! flock -n 9; then
+    echo "ERROR: another electronBeamFoam run already owns this case directory." >&2
+    echo "Use ./Status or wait for the active run to finish." >&2
+    exit 2
+fi
+
 # Quiet MPI run for electronBeamFoam.
 # Usage:
 #   NPROCS=48 ./Allrun_parallel

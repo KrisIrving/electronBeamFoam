@@ -1,0 +1,24 @@
+{
+  "source": "accepted 0.5 mm Zakirov2020 preflight, epsilonTolerance=1e-3, uniformFine",
+  "track_length_m": 0.0005,
+  "power_W": 900,
+  "scan_speed_m_s": 3,
+  "epsilonTolerance": 0.001,
+  "mesh_profile": "uniformFine",
+  "fusionZone": {
+    "length_m": 0.0006851872533,
+    "width_m": 0.0004351872533,
+    "depth_m": 0.00006099950656,
+    "volume_m3": 5.840511758e-12,
+    "peakTmax_K": 3358.807046
+  },
+  "final_interval": {
+    "global_cells": 2241196,
+    "thermal_cap_hits": 59,
+    "thermal_correctors": 17668,
+    "steps": 4396,
+    "thermal_conv_resid_mean": 0.0006540744808,
+    "thermal_conv_resid_max": 0.008654096947
+  },
+  "clock_time_s": 14091
+}
