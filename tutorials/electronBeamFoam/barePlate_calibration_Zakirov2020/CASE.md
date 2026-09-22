@@ -153,3 +153,48 @@ Accept the looser tolerance only if the fusion-zone W/D shift remains within
 the available mesh resolution while thermal cap hits and wall time decrease
 materially. The full 3 mm calibration should not be started before this A/B
 gate is resolved.
+
+
+## Candidate graded-y calibration mesh
+
+The first 900 W preflight reached more than 2.2 million dynamically refined
+cells. The reference base mesh uses dy=6.25 um through the full 0.6 mm domain,
+although the experimental fusion depth is only about 51 um.
+
+A candidate mesh is now available as:
+
+```text
+system/blockMeshDict.gradedY
+```
+
+It keeps the x/z domain and discretization unchanged but splits y into:
+
+```text
+0.00 - 0.15 mm : dy = 12.5 um   (vacuum/headspace)
+0.15 - 0.35 mm : dy =  6.25 um  (surface + top 150 um substrate)
+0.35 - 0.60 mm : dy = 25.0 um   (deep substrate)
+```
+
+The initial surface y=0.20 mm lies exactly on a fine-band cell face. The fine
+band extends 150 um below the surface, comfortably beyond the current
+61 um preflight fusion depth.
+
+Base-cell count falls from 1,013,760 to 570,240 (-43.75%). The candidate is
+not yet the production default.
+
+After the 1e-3 tolerance A/B is accepted, run:
+
+```bash
+./Run_meshProbe
+```
+
+Then:
+
+```bash
+./SummarizeRun
+./CompareMesh.py
+```
+
+This performs the same 0.5 mm / 900 W / 3 m/s trajectory with
+`MESH_PROFILE=gradedY` and compares fusion-zone geometry, final cell count and
+wall time against the archived uniform-fine 1e-3 result.
