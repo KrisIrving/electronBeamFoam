@@ -36,11 +36,11 @@ bead-on-plate dataset and subsequent source-model calibration.
    - PCG/DIC remains the accepted linear-solver baseline.
 
 5. **PIMPLE pressure corrections**
-   - nCorrectors 3 -> 2 is the current candidate;
+   - nCorrectors 3 -> 2 accepted;
    - W/D/L unchanged; fusion volume -0.151%;
    - pressure wall 2946.9 -> 2351.8 s (1.253x);
    - ClockTime 9626 -> 8926 s (1.078x);
-   - formal acceptance pending continuity-error gate.
+   - continuity gate passed: max |global|=6.07e-10, final cumulative=4.19e-9.
 
 Overall, relative to the first 900 W / 3 m/s / 0.5 mm preflight, the current
 two-corrector candidate reduces ClockTime from about 19112 s to 8926 s
@@ -62,10 +62,9 @@ not final fitted predictions.
 
 ## Remaining gates to the first quantitative target
 
-### A. Freeze the numerical baseline
-1. Check continuity metrics for the nCorrectors=2 run.
-2. If continuity remains well behaved, promote pCorr2; otherwise retain pCorr3.
-3. Stop pressure micro-optimization after this gate.
+### A. Freeze the numerical baseline — complete
+The accepted baseline is gradedYSmooth + epsilonTolerance=1e-3 + PCG/DIC +
+nCorrectors=2 on 48 physical cores. Pressure micro-optimization is closed.
 
 ### B. Make the experimental observable correct
 Implement station-wise fusion-zone cross-section diagnostics:

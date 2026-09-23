@@ -402,3 +402,31 @@ This is a strong performance candidate but is not promoted to the default until
 the continuity-error gate is checked from the raw solver log. `SummarizeRun`
 now extracts max local/global and cumulative continuity metrics automatically.
 No rerun is required: regenerate the summary from the existing solver log.
+
+
+## Two-corrector baseline accepted
+
+The continuity gate for the 0.5 mm `nCorrectors=2` run passed:
+
+- continuity samples: 11053;
+- maximum absolute local continuity error: 7.47e-7;
+- maximum absolute global continuity error: 6.07e-10;
+- final cumulative continuity error: 4.19e-9;
+- maximum absolute cumulative continuity error: 5.25e-9.
+
+Together with unchanged fusion-zone W/D/L, -0.151% fusion-volume change and
+the 1.078x total speedup, `nCorrectors=2` is accepted as the calibration
+default. PCG/DIC remains the pressure solver.
+
+The accepted numerical baseline is therefore:
+
+```text
+mesh             gradedYSmooth
+epsilonTolerance 1e-3
+pressure         PCG + DIC
+nCorrectors      2
+MPI ranks        48 physical cores
+```
+
+Pressure micro-optimization stops here; subsequent changes must target either
+the experimental observable or physics fidelity.

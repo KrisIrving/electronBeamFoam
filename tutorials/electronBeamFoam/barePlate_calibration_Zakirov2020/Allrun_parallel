@@ -19,7 +19,7 @@ fi
 NPROCS="${NPROCS:-48}"
 MESH_PROFILE="${MESH_PROFILE:-gradedYSmooth}"
 PRESSURE_PROFILE="${PRESSURE_PROFILE:-pcg}"
-PIMPLE_PROFILE="${PIMPLE_PROFILE:-pCorr3}"
+PIMPLE_PROFILE="${PIMPLE_PROFILE:-pCorr2}"
 
 case "$MESH_PROFILE" in
     uniformFine|gradedY|gradedYSmooth) ;;
@@ -105,11 +105,31 @@ esac
 
 case "$PIMPLE_PROFILE" in
     pCorr3)
+        PIMPLE_NCORR=3
         ;;
     pCorr2)
-        cp system/fvSolution.pCorr2 system/fvSolution
+        PIMPLE_NCORR=2
         ;;
 esac
+
+python3 - "$PIMPLE_NCORR" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path("system/fvSolution")
+text = path.read_text()
+text, n = re.subn(
+    r"(^\s*nCorrectors\s+)[0-9]+;",
+    rf"\g<1>{int(sys.argv[1])};",
+    text,
+    count=1,
+    flags=re.M,
+)
+if n != 1:
+    raise SystemExit("Could not update PIMPLE nCorrectors")
+path.write_text(text)
+PY
 
 python3 generateCalibrationTrack.py > log.generateTrack 2>&1
 echo "  mesh profile   = $MESH_PROFILE" >> log.generateTrack

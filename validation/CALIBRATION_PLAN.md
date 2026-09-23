@@ -72,6 +72,7 @@ Two-corrector candidate:
 - nCorrectors 3 -> 2 preserved W/D/L; fusion volume -0.151%;
 - pressure wall speedup 1.253x; total ClockTime 9626 -> 8926 s (1.078x);
 - final dynamic cells +0.03%;
-- formal acceptance pending continuity-error extraction from the existing log;
-- after this gate, stop pressure micro-optimization and move to quantitative
-  validation infrastructure (station-wise metallographic cross sections).
+- continuity gate passed: max |global|=6.07e-10, final cumulative=4.19e-9;
+- nCorrectors=2 accepted as the calibration default;
+- pressure micro-optimization is closed;
+- next: station-wise metallographic fusion-zone cross sections.

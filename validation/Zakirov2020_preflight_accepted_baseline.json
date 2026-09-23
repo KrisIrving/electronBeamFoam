@@ -1,0 +1,37 @@
+{
+  "source": "accepted 0.5 mm Zakirov2020 numerical baseline",
+  "track_length_m": 0.0005,
+  "power_W": 900,
+  "scan_speed_m_s": 3,
+  "epsilonTolerance": 0.001,
+  "mesh_profile": "gradedYSmooth",
+  "pressure_profile": "pcg_dic",
+  "pimple_nCorrectors": 2,
+  "mpi_physical_cores": 48,
+  "fusionZone": {
+    "length_m": 0.0006851872533,
+    "width_m": 0.0004351872533,
+    "depth_m": 0.00006099950655,
+    "volume_m3": 5.826005632e-12,
+    "peakTmax_K": 3367.725162
+  },
+  "final_interval": {
+    "steps": 3589,
+    "pressure_correctors": 7178,
+    "thermal_correctors": 13443,
+    "thermal_cap_hits": 16,
+    "global_cells": 1923759,
+    "wall_total_s": 6535.010908,
+    "pressure_s": 2351.78515,
+    "thermal_phase_s": 1330.51665
+  },
+  "continuity": {
+    "samples": 11053,
+    "max_abs_local": 7.46772e-7,
+    "max_abs_global": 6.07286e-10,
+    "final_cumulative": 4.1865e-9,
+    "max_abs_cumulative": 5.24652e-9
+  },
+  "clock_time_s": 8926,
+  "decision": "accepted calibration numerical baseline"
+}
