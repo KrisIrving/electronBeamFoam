@@ -301,6 +301,61 @@ const fileName fusionZoneCsvFile
     )
 );
 
+const Switch fusionZoneSectionEnabled
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<Switch>
+    (
+        "fusionZoneSectionEnabled",
+        false
+    )
+);
+
+const scalar fusionZoneSectionHalfThickness =
+    meltPoolDiagnosticsProperties.lookupOrDefault<scalar>
+    (
+        "fusionZoneSectionHalfThickness",
+        12.5e-6
+    );
+
+scalarList fusionZoneSectionPositions;
+if (meltPoolDiagnosticsProperties.found("fusionZoneSectionPositions"))
+{
+    meltPoolDiagnosticsProperties.lookup("fusionZoneSectionPositions")
+        >> fusionZoneSectionPositions;
+}
+
+const fileName fusionZoneSectionCsvFile
+(
+    meltPoolDiagnosticsProperties.lookupOrDefault<fileName>
+    (
+        "fusionZoneSectionCsvFile",
+        "fusionZoneSections.csv"
+    )
+);
+
+if
+(
+    fusionZoneSectionEnabled
+ && fusionZoneSectionHalfThickness <= SMALL
+)
+{
+    FatalErrorInFunction
+        << "fusionZoneSectionHalfThickness must be > 0."
+        << exit(FatalError);
+}
+
+if
+(
+    fusionZoneSectionEnabled
+ && fusionZoneSectionPositions.empty()
+)
+{
+    FatalErrorInFunction
+        << "fusionZoneSectionEnabled=true requires at least one "
+        << "fusionZoneSectionPositions entry."
+        << exit(FatalError);
+}
+
 const scalar meltPoolMetalFractionThreshold =
     meltPoolDiagnosticsProperties.lookupOrDefault<scalar>
     (
@@ -416,7 +471,10 @@ Info<< "Melt-pool diagnostics" << nl
     << "    depth direction       = " << meltPoolDepthDirection << nl
     << "    reference surface     = " << meltPoolReferenceSurfacePoint << nl
     << "    fusion-zone history   = " << fusionZoneEnabled << nl
-    << "    fusion substrate only = " << fusionZoneSubstrateOnly
+    << "    fusion substrate only = " << fusionZoneSubstrateOnly << nl
+    << "    section diagnostics   = " << fusionZoneSectionEnabled << nl
+    << "    section half-thickness= " << fusionZoneSectionHalfThickness << " m" << nl
+    << "    section positions     = " << fusionZoneSectionPositions
     << endl;
 
 const word interfaceTrackingScheme

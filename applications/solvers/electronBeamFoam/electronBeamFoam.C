@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
     scalar profileDeltaTMin = GREAT;
     scalar profileDeltaTMax = 0.0;
 
-    Info<< "electronBeamFoam build tag = phaseResidualRegions-v3-weightedConvergence" << nl
+    Info<< "electronBeamFoam build tag = fusionSections-v4-pCorr2Baseline" << nl
         << "\nStarting time loop\n" << endl;
 
     if (performanceProfiling)
@@ -401,6 +401,7 @@ int main(int argc, char *argv[])
 
         #include "meltPoolDiagnostics.H"
         #include "fusionZoneDiagnostics.H"
+        #include "fusionZoneSectionDiagnostics.H"
 
         const auto profileWriteStart = profileNow();
         runTime.write();

@@ -102,4 +102,8 @@ fit all three to one condition.
   Monte-Carlo electron deposition when the baseline is validated.
 
 The immediate critical path is:
-**continuity gate -> station-wise W/D diagnostic -> full 3 mm 296 K baseline**.
+**station-wise W/D diagnostic smoke test -> full 3 mm 296 K baseline**.
+
+The station-wise diagnostic is now implemented as a finite-slab measurement at
+-0.5/0/+0.5 mm relative to the track reference point. It must be compiled and
+smoke-tested before starting the full reference run.

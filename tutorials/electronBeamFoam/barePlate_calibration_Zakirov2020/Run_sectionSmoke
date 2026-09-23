@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+
+# Runtime/CSV smoke test for station-wise fusion-zone diagnostics.
+# This is intentionally short and is NOT an experimental calibration run.
+X_START=-0.000025 \
+X_END=0.000025 \
+WRITE_INTERVAL=8.0e-06 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

@@ -25,6 +25,14 @@ fusionZoneMetalFractionThreshold 0.5;
 fusionZoneSubstrateOnly         true;
 fusionZoneCsvFile               fusionZone.csv;
 
+// Station-wise metallographic comparison. Positions are measured along
+// lengthDirection from referenceSurfacePoint. The 25 um slab thickness
+// matches one base x-cell and contains multiple cells after AMR.
+fusionZoneSectionEnabled         true;
+fusionZoneSectionPositions       (-0.0005 0 0.0005);
+fusionZoneSectionHalfThickness   1.25e-05;
+fusionZoneSectionCsvFile         fusionZoneSections.csv;
+
 // Coordinate convention for the current bare-plate mesh:
 // x = scan/length direction
 // y = beam penetration/depth direction

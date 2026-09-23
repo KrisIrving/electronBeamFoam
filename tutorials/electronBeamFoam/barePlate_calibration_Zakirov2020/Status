@@ -71,6 +71,31 @@ else
     echo '  no fusionZone.csv yet'
 fi
 
+echo 'Latest fusion-zone sections:'
+if [ -f postProcessing/meltPoolDiagnostics/fusionZoneSections.csv ]; then
+    python3 - <<'PY' || true
+import csv
+from pathlib import Path
+p = Path("postProcessing/meltPoolDiagnostics/fusionZoneSections.csv")
+with p.open(newline="") as f:
+    rows = list(csv.DictReader(f))
+if rows:
+    t = max(float(r["time_s"]) for r in rows)
+    for r in rows:
+        if abs(float(r["time_s"]) - t) <= 1e-14:
+            print(
+                "  x={:+8.3f} mm  W={:8.3f} um  D={:8.3f} um  cells={}".format(
+                    float(r["station_m"])*1e3,
+                    float(r["width_m"])*1e6,
+                    float(r["depth_m"])*1e6,
+                    r["sectionCells"],
+                )
+            )
+PY
+else
+    echo '  no fusionZoneSections.csv yet'
+fi
+
 echo 'Experiment comparison:'
 if [ -f calibration-comparison.txt ]; then
     sed 's/^/  /' calibration-comparison.txt

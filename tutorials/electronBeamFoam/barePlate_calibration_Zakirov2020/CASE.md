@@ -430,3 +430,44 @@ MPI ranks        48 physical cores
 
 Pressure micro-optimization stops here; subsequent changes must target either
 the experimental observable or physics fidelity.
+
+
+## Station-wise fusion-zone sections
+
+The global cumulative fusion-zone bounding box is retained for regression and
+whole-track diagnostics, but it is not the primary metallographic observable
+for a long track.
+
+The solver now additionally samples finite y-z slabs at selected scan
+positions. The calibration case defaults to:
+
+```text
+fusionZoneSectionPositions       (-0.0005 0 0.0005);
+fusionZoneSectionHalfThickness   1.25e-05;
+```
+
+so the effective slab thickness is 25 um. This matches one base x cell while
+sampling multiple cells where dynamic refinement is active. The output is:
+
+```text
+postProcessing/meltPoolDiagnostics/fusionZoneSections.csv
+```
+
+with one row per station at each write time.
+
+After rebuilding the solver, first run:
+
+```bash
+./Run_sectionSmoke
+```
+
+This only verifies runtime integration and CSV generation. It is not a
+calibration result. After it finishes:
+
+```bash
+./SummarizeRun
+./CompareSections.py
+```
+
+For the eventual full 3 mm track, the -0.5/0/+0.5 mm central stations are used
+to quantify station-to-station W/D variation and avoid start/stop extrema.

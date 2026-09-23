@@ -152,6 +152,7 @@ esac
 rm -rf 0 processor*
 rm -rf postProcessing
 rm -f calibration-comparison.txt
+rm -f section-comparison.txt
 rm -f case.foam
 foamListTimes -rm -noZero > log.cleanTimes 2>&1 || true
 cp -r initial 0
@@ -188,6 +189,7 @@ mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel \
     > log.electronBeamFoam 2>&1
 
 python3 CompareExperiment.py > calibration-comparison.txt 2>&1 || true
+python3 CompareSections.py > section-comparison.txt 2>&1 || true
 
 # Reconstruct dynamic mesh + fields after a successful solver run.
 # Set AUTO_RECONSTRUCT=0 to keep the decomposed result only.

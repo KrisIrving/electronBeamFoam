@@ -46,6 +46,37 @@ fi
     ' "$LOG" || true
     echo
 
+    echo "## Fusion-zone section diagnostics"
+    if [ -f postProcessing/meltPoolDiagnostics/fusionZoneSections.csv ]; then
+        python3 - <<'PY' || true
+import csv
+from pathlib import Path
+
+path = Path("postProcessing/meltPoolDiagnostics/fusionZoneSections.csv")
+with path.open(newline="") as f:
+    rows = list(csv.DictReader(f))
+
+if rows:
+    final_time = max(float(r["time_s"]) for r in rows)
+    print(f"final section time      = {final_time:.12g} s")
+    for r in rows:
+        if abs(float(r["time_s"]) - final_time) <= 1e-14:
+            print(
+                "section station={:+.6e} m cells={} width={:.12g} m "
+                "depth={:.12g} m peakT={:.12g} K".format(
+                    float(r["station_m"]),
+                    r["sectionCells"],
+                    float(r["width_m"]),
+                    float(r["depth_m"]),
+                    float(r["peakTmax_K"]),
+                )
+            )
+PY
+    else
+        echo "no fusionZoneSections.csv"
+    fi
+    echo
+
     echo "## Performance profiles"
     grep -E '^(Performance profile:|    steps                =|    PIMPLE iterations    =|    pressure correctors  =|    thermal correctors   =|    max thermal/TEqn     =|    thermal cap hits     =|    thermal final resid  =|    thermal conv resid   =|    thermal resid bulk   =|    thermal resid iface  =|    thermal resid void   =|    thermal cap regions  =|    deltaT min/mean/max  =|    global cells         =|    wall total           =|    mesh update          =|    VOF/interface        =|    properties           =|    electron beam        =|    momentum             =|    thermal/phase        =|    pressure             =|    turbulence           =|    write I/O            =|    other                =)'         "$LOG" || true
     echo
