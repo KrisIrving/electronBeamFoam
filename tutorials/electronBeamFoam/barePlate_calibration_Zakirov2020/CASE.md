@@ -350,3 +350,34 @@ Then:
 ./SummarizeRun
 ./ComparePressureFdic.py | tee pressure-fdic-comparison.txt
 ```
+
+
+## FDIC pressure probe rejected
+
+The PCG/FDIC A/B reproduced the accepted PCG/DIC trajectory essentially
+exactly: fusion-zone W/D/L/V, final dynamic-cell count and thermal cap hits were
+unchanged. Performance nevertheless regressed:
+
+- developed-stage pressure wall: 2946.9 -> 3051.8 s (+3.6%);
+- developed-stage total wall: 6986.5 -> 7221.2 s (+3.4%);
+- ClockTime: 9626 -> 9883 s (+2.7%).
+
+PCG/DIC remains the pressure-linear-solver baseline.
+
+The next probe targets pressure-correction count instead of the linear solver.
+It keeps PCG/DIC and all pressure tolerances fixed and changes only PIMPLE
+`nCorrectors` from 3 to 2. The final correction still uses `p_rghFinal`
+with `relTol=0`.
+
+Run:
+
+```bash
+./Run_pressure2CorrProbe
+```
+
+Then:
+
+```bash
+./SummarizeRun
+./ComparePressure2Corr.py | tee pressure-2corr-comparison.txt
+```

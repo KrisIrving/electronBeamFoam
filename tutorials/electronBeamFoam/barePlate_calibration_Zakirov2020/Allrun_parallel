@@ -19,6 +19,7 @@ fi
 NPROCS="${NPROCS:-48}"
 MESH_PROFILE="${MESH_PROFILE:-gradedYSmooth}"
 PRESSURE_PROFILE="${PRESSURE_PROFILE:-pcg}"
+PIMPLE_PROFILE="${PIMPLE_PROFILE:-pCorr3}"
 
 case "$MESH_PROFILE" in
     uniformFine|gradedY|gradedYSmooth) ;;
@@ -34,6 +35,15 @@ case "$PRESSURE_PROFILE" in
     *)
         echo "ERROR: unknown PRESSURE_PROFILE '$PRESSURE_PROFILE'." >&2
         echo "Valid values: pcg, gamg, fdic" >&2
+        exit 1
+        ;;
+esac
+
+case "$PIMPLE_PROFILE" in
+    pCorr3|pCorr2) ;;
+    *)
+        echo "ERROR: unknown PIMPLE_PROFILE '$PIMPLE_PROFILE'." >&2
+        echo "Valid values: pCorr3, pCorr2" >&2
         exit 1
         ;;
 esac
@@ -93,9 +103,18 @@ case "$PRESSURE_PROFILE" in
         ;;
 esac
 
+case "$PIMPLE_PROFILE" in
+    pCorr3)
+        ;;
+    pCorr2)
+        cp system/fvSolution.pCorr2 system/fvSolution
+        ;;
+esac
+
 python3 generateCalibrationTrack.py > log.generateTrack 2>&1
 echo "  mesh profile   = $MESH_PROFILE" >> log.generateTrack
 echo "  pressure prof  = $PRESSURE_PROFILE" >> log.generateTrack
+echo "  PIMPLE profile = $PIMPLE_PROFILE" >> log.generateTrack
 
 case "$MESH_PROFILE" in
     uniformFine)

@@ -58,3 +58,11 @@ Pressure-solver update:
 - total ClockTime increased ~7.1%;
 - PCG/DIC remains baseline;
 - next gate is PCG/FDIC with identical tolerances.
+
+
+Pressure-preconditioner update:
+- PCG/FDIC rejected;
+- geometry and dynamic-cell path were effectively identical to PCG/DIC;
+- pressure wall time increased ~3.6%, total ClockTime ~2.7%;
+- next gate: reduce PIMPLE pressure correctors from 3 to 2 while retaining
+  the strict final p_rgh solve.
