@@ -50,6 +50,11 @@ new_pressure = last_float(r"pressure\s*=\s*([0-9.eE+-]+) s")
 new_total = last_float(r"wall total\s*=\s*([0-9.eE+-]+) s")
 new_clock = last_float(r"ClockTime = ([0-9.eE+-]+) s")
 new_caps = last_float(r"thermal cap hits\s*=\s*([0-9.eE+-]+)")
+cont_samples = last_float(r"continuity samples\s*=\s*([0-9.eE+-]+)")
+cont_local = last_float(r"continuity max local\s*=\s*([0-9.eE+-]+)")
+cont_global = last_float(r"continuity max global\s*=\s*([0-9.eE+-]+)")
+cont_final = last_float(r"continuity final cumul\s*=\s*([0-9.eE+-]+)")
+cont_max_cum = last_float(r"continuity max abs cumul\s*=\s*([0-9.eE+-]+)")
 
 if new_steps is not None and new_pcorr is not None:
     print(
