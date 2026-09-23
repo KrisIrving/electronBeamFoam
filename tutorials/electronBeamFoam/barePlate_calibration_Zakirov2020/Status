@@ -96,6 +96,15 @@ else
     echo '  no fusionZoneSections.csv yet'
 fi
 
+echo 'Station-wise experiment comparison:'
+if [ -f section-experiment-comparison.txt ]; then
+    sed 's/^/  /' section-experiment-comparison.txt
+elif [ -f postProcessing/meltPoolDiagnostics/fusionZoneSections.csv ]; then
+    python3 CompareExperimentSections.py 2>/dev/null | sed 's/^/  /' || true
+else
+    echo '  no station-wise comparison yet'
+fi
+
 echo 'Experiment comparison:'
 if [ -f calibration-comparison.txt ]; then
     sed 's/^/  /' calibration-comparison.txt

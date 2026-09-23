@@ -76,3 +76,13 @@ Two-corrector candidate:
 - nCorrectors=2 accepted as the calibration default;
 - pressure micro-optimization is closed;
 - next: station-wise metallographic fusion-zone cross sections.
+
+
+Section-diagnostic gate:
+- 0.05 mm smoke test passed runtime/CSV integration but remained below melt;
+- 0.25 mm positive-signal probe produced a 1077-cell central section;
+- central section W/D exactly matched the simultaneous global W/D in the
+  symmetric short-track state (372.687 / 42.250 um);
+- +/-0.5 mm stations remained zero as expected outside the short scan;
+- continuity max |global| = 3.85e-10;
+- station-wise diagnostic accepted for the first full 3 mm quantitative run.

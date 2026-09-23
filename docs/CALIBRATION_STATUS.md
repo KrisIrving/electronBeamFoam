@@ -120,3 +120,16 @@ positive-signal geometry gate.
 Next gate: `Run_sectionSignalProbe` at 0.25 mm / 83.33 us. The central x=0
 section should become non-zero; +/-0.5 mm stations remain outside the short
 track by design.
+
+
+## Section positive-signal gate — passed
+
+At 0.25 mm / 83.33 us, the central x=0 section contained 1077 fused cells and
+reported W=372.687 um, D=42.250 um, exactly matching the simultaneous global
+fusion-zone width/depth in this symmetric short-track state. The +/-0.5 mm
+stations correctly remained empty because they were outside the short scan.
+
+The next task is no longer a smoke test: run `Run_fullReference` for the first
+3 mm quantitative 296 K / 900 W / 3 m/s comparison. Use the final
+-0.5/0/+0.5 mm section mean and station spread as the primary metallographic
+observable.

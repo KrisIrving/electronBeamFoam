@@ -1,0 +1,26 @@
+{
+  "source": "accepted positive-signal station-wise diagnostic probe",
+  "track_length_m": 0.00025,
+  "scan_time_s": 0.00008333333333,
+  "power_W": 900,
+  "scan_speed_m_s": 3,
+  "central_station_m": 0,
+  "central_section": {
+    "cells": 1077,
+    "width_m": 0.000372687253281,
+    "depth_m": 0.0000422495065531,
+    "peakTmax_K": 3122.89073954
+  },
+  "global_fusion_zone": {
+    "width_m": 0.0003726872533,
+    "depth_m": 0.00004224950655
+  },
+  "continuity": {
+    "samples": 3776,
+    "max_abs_local": 8.363270784e-7,
+    "max_abs_global": 3.853751038e-10,
+    "final_cumulative": -1.226397617e-9,
+    "max_abs_cumulative": 5.278016441e-9
+  },
+  "decision": "station-wise diagnostic accepted for full 3 mm reference"
+}

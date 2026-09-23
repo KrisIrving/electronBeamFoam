@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euo pipefail
+
+# First quantitative Zakirov2020 reference:
+# 296 K, 900 W, 3 m/s, 3 mm track.
+#
+# The accepted numerical baseline is pinned explicitly here so later default
+# changes cannot silently alter this validation run.
+PREHEAT_K=296 \
+BEAM_POWER=900 \
+SCAN_SPEED=3.0 \
+X_START=-0.0015 \
+X_END=0.0015 \
+ABSORPTIVITY=0.85 \
+BEAM_RADIUS=250e-6 \
+PENETRATION_DEPTH=18.9e-6 \
+EPSILON_TOLERANCE=1e-3 \
+MAX_TEMP_CORRECTOR=20 \
+MESH_PROFILE=gradedYSmooth \
+PRESSURE_PROFILE=pcg \
+PIMPLE_PROFILE=pCorr2 \
+NPROCS=48 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

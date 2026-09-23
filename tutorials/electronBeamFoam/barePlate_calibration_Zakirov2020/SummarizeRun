@@ -116,6 +116,14 @@ else:
 PY
     echo
 
+    echo "## Station-wise experimental comparison"
+    if [ -f section-experiment-comparison.txt ]; then
+        cat section-experiment-comparison.txt
+    elif [ -f postProcessing/meltPoolDiagnostics/fusionZoneSections.csv ]; then
+        python3 CompareExperimentSections.py 2>/dev/null || true
+    fi
+    echo
+
     echo "## Experimental comparison"
     if [ -f calibration-comparison.txt ]; then
         cat calibration-comparison.txt

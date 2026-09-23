@@ -507,3 +507,44 @@ After completion:
 Acceptance requires a non-zero central-station section with W/D consistent in
 scale with the simultaneous global fusion-zone diagnostic. This is still a
 diagnostic run, not an experimental calibration point.
+
+
+## Section positive-signal gate accepted
+
+The 0.25 mm / 83.33 us positive-signal probe completed with the accepted
+numerical baseline. At final time:
+
+```text
+global fusion zone: W=372.687 um, D=42.250 um
+central x=0 slab:  W=372.687 um, D=42.250 um, 1077 cells
+x=+/-0.5 mm:       zero, as expected outside the short scan
+```
+
+The exact global/central agreement in this symmetric short-track state and the
+non-zero 1077-cell section population validate the finite-slab geometry path.
+Continuity remained well behaved (max |global| 3.85e-10).
+
+The station-wise diagnostic is therefore accepted for the first full 3 mm
+quantitative reference.
+
+Use:
+
+```bash
+./Run_fullReference
+```
+
+This explicitly pins the accepted numerical baseline and runs the 296 K,
+900 W, 3 m/s, 3 mm reference on 48 physical cores with automatic reconstruction
+disabled. Reconstruct only after the quantitative CSV checks pass.
+
+After completion:
+
+```bash
+./SummarizeRun
+./CompareSections.py | tee section-comparison.txt
+./CompareExperimentSections.py | tee section-experiment-comparison.txt
+```
+
+For the 3 mm run, the central-window mean over x=-0.5/0/+0.5 mm is the primary
+model observable; station spread quantifies whether the central track is
+sufficiently uniform. The global fusion-zone bounding box remains secondary.
