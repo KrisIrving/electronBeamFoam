@@ -50,3 +50,11 @@ Mesh baseline update:
 - final dynamic cell count -14.19%;
 - ClockTime 14091 -> 9626 s (1.464x);
 - next performance gate: pressure linear-solver A/B on the same 0.5 mm case.
+
+
+Pressure-solver update:
+- GAMG/DICGaussSeidel rejected on the 0.5 mm gradedYSmooth case;
+- W/D/L unchanged, but pressure wall time increased ~13.8%;
+- total ClockTime increased ~7.1%;
+- PCG/DIC remains baseline;
+- next gate is PCG/FDIC with identical tolerances.

@@ -1,0 +1,26 @@
+{
+  "source": "rejected 0.5 mm Zakirov2020 pressure probe, GAMG + DICGaussSeidel",
+  "track_length_m": 0.0005,
+  "power_W": 900,
+  "scan_speed_m_s": 3,
+  "epsilonTolerance": 0.001,
+  "mesh_profile": "gradedYSmooth",
+  "pressure_profile": "gamg",
+  "fusionZone": {
+    "length_m": 0.0006851872533,
+    "width_m": 0.0004351872533,
+    "depth_m": 0.00006099950655,
+    "volume_m3": 5.836446147e-12,
+    "peakTmax_K": 3383.528834
+  },
+  "final_interval": {
+    "steps": 3677,
+    "global_cells": 1926006,
+    "thermal_cap_hits": 12,
+    "wall_total_s": 7463.566372,
+    "thermal_phase_s": 1212.960436,
+    "pressure_s": 3352.454522
+  },
+  "clock_time_s": 10311,
+  "decision": "rejected: slower than PCG/DIC baseline"
+}

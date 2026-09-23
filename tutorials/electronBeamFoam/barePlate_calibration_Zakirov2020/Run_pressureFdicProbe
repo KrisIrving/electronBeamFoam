@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euo pipefail
+
+guard_no_active_run()
+{
+    exec 7>.electronBeamFoam.run.lock
+    if ! flock -n 7; then
+        echo "ERROR: an electronBeamFoam run is already active in this case." >&2
+        echo "Use ./Status instead of launching a second pressure probe." >&2
+        exit 2
+    fi
+    flock -u 7
+}
+guard_no_active_run
+
+# Same physics, mesh, phase-change controls and pressure tolerances as the
+# accepted PCG/DIC baseline. Only DIC -> FDIC changes.
+EPSILON_TOLERANCE=1e-3 \
+MESH_PROFILE=gradedYSmooth \
+PRESSURE_PROFILE=fdic \
+X_START=-0.00025 \
+X_END=0.00025 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

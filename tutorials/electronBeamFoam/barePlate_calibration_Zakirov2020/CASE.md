@@ -322,3 +322,31 @@ After completion:
 
 Only the pressure linear solver changes; source, mesh, phase-change settings,
 track length and PIMPLE corrector count remain fixed.
+
+
+## GAMG pressure probe rejected
+
+The strict 0.5 mm pressure A/B changed only the p_rgh linear solver from
+PCG/DIC to GAMG/DICGaussSeidel. Fusion-zone W/D/L were unchanged and volume
+shifted by only +0.028%, but performance regressed:
+
+- developed-stage pressure wall: 2946.9 -> 3352.5 s (+13.8%);
+- developed-stage total wall: 6986.5 -> 7463.6 s (+6.8%);
+- ClockTime: 9626 -> 10311 s (+7.1%).
+
+GAMG is therefore rejected for this 48-rank calibration workload. PCG/DIC
+remains the accepted baseline.
+
+The next low-risk probe keeps PCG and all tolerances fixed, changing only the
+preconditioner from DIC to FDIC. Run:
+
+```bash
+./Run_pressureFdicProbe
+```
+
+Then:
+
+```bash
+./SummarizeRun
+./ComparePressureFdic.py | tee pressure-fdic-comparison.txt
+```
