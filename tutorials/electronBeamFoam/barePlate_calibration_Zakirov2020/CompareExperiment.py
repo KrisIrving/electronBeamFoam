@@ -64,5 +64,6 @@ if abs(track_length - 3.0e-3) > 1.0e-6:
         f"  note: track length is {track_length*1e3:.3f} mm; "
         "the reference numerical track length is 3.000 mm"
     )
+    print("  SHORT-TRACK DIAGNOSTIC ONLY: do not use these errors for calibration.")
 print(f"  Wsim = {w_sim:.3f} um    Wexp = {w_exp:.3f} um    error = {w_err:+.2f}%")
 print(f"  Dsim = {d_sim:.3f} um    Dexp = {d_exp:.3f} um    error = {d_err:+.2f}%")

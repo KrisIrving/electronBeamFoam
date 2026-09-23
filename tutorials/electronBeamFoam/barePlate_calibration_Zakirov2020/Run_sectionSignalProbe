@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+
+# Positive-signal validation for station-wise fusion-zone diagnostics.
+# 0.25 mm at 3 m/s gives 83.33 us, long enough to form a molten/fused region
+# in the accepted 900 W baseline while remaining much cheaper than the 3 mm run.
+# Only the central x=0 station is expected to lie inside this short scan.
+X_START=-0.000125 \
+X_END=0.000125 \
+WRITE_INTERVAL=4.1666666667e-05 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

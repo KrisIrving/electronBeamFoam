@@ -107,3 +107,16 @@ The immediate critical path is:
 The station-wise diagnostic is now implemented as a finite-slab measurement at
 -0.5/0/+0.5 mm relative to the track reference point. It must be compiled and
 smoke-tested before starting the full reference run.
+
+
+## Section-diagnostic integration result
+
+The 0.05 mm / 16.7 us smoke test completed successfully with the
+`fusionSections-v4-pCorr2Baseline` build and wrote all configured section
+rows. No material melted during this deliberately short exposure, so all
+section W/D values were zero. This passes runtime/CSV integration but not the
+positive-signal geometry gate.
+
+Next gate: `Run_sectionSignalProbe` at 0.25 mm / 83.33 us. The central x=0
+section should become non-zero; +/-0.5 mm stations remain outside the short
+track by design.

@@ -471,3 +471,39 @@ calibration result. After it finishes:
 
 For the eventual full 3 mm track, the -0.5/0/+0.5 mm central stations are used
 to quantify station-to-station W/D variation and avoid start/stop extrema.
+
+
+## Positive-signal section probe
+
+The 0.05 mm `Run_sectionSmoke` passed the runtime/CSV integration test, but
+the 16.7 us exposure ended before any melt/fusion cells formed. Therefore all
+section values were correctly zero, which verifies I/O but not non-zero
+section geometry.
+
+Before committing to the full 3 mm calibration, run:
+
+```bash
+./Run_sectionSignalProbe
+```
+
+This uses a 0.25 mm track:
+
+```text
+x = -0.125 ... +0.125 mm
+scan time = 83.33 us
+```
+
+At this duration the accepted 900 W baseline is expected to have developed a
+non-zero fusion zone. Only the central x=0 station lies within this short scan;
+the +/-0.5 mm stations are intentionally outside it and should remain zero.
+
+After completion:
+
+```bash
+./SummarizeRun
+./CompareSections.py | tee section-comparison.txt
+```
+
+Acceptance requires a non-zero central-station section with W/D consistent in
+scale with the simultaneous global fusion-zone diagnostic. This is still a
+diagnostic run, not an experimental calibration point.

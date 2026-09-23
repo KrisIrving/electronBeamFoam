@@ -41,6 +41,7 @@ fi
     awk '
         /^Fusion-zone diagnostics$/ {active=1; print; next}
         /^Melt-pool diagnostics$/ {active=0}
+        /^Fusion-zone section diagnostics$/ {active=0}
         /^Performance profile:/ {active=0}
         active && /^    (cells|length|width|depth|volume|peak Tmax)[[:space:]]*=/ {print}
     ' "$LOG" || true
