@@ -50,6 +50,40 @@ fi
     grep -E '^(Performance profile:|    steps                =|    PIMPLE iterations    =|    pressure correctors  =|    thermal correctors   =|    max thermal/TEqn     =|    thermal cap hits     =|    thermal final resid  =|    thermal conv resid   =|    thermal resid bulk   =|    thermal resid iface  =|    thermal resid void   =|    thermal cap regions  =|    deltaT min/mean/max  =|    global cells         =|    wall total           =|    mesh update          =|    VOF/interface        =|    properties           =|    electron beam        =|    momentum             =|    thermal/phase        =|    pressure             =|    turbulence           =|    write I/O            =|    other                =)'         "$LOG" || true
     echo
 
+    echo "## Continuity diagnostics"
+    python3 - "$LOG" <<'PY' || true
+import re
+import sys
+from pathlib import Path
+
+log = Path(sys.argv[1])
+pat = re.compile(
+    r"time step continuity errors\s*:\s*"
+    r"sum local\s*=\s*([0-9.eE+-]+),\s*"
+    r"global\s*=\s*([0-9.eE+-]+),\s*"
+    r"cumulative\s*=\s*([0-9.eE+-]+)"
+)
+
+rows = []
+for line in log.open(errors="replace"):
+    m = pat.search(line)
+    if m:
+        rows.append(tuple(float(x) for x in m.groups()))
+
+if not rows:
+    print("continuity samples       = 0")
+else:
+    local = [abs(r[0]) for r in rows]
+    glob = [abs(r[1]) for r in rows]
+    cum = [r[2] for r in rows]
+    print(f"continuity samples       = {len(rows)}")
+    print(f"continuity max local     = {max(local):.12g}")
+    print(f"continuity max global    = {max(glob):.12g}")
+    print(f"continuity final cumul   = {cum[-1]:.12g}")
+    print(f"continuity max abs cumul = {max(abs(x) for x in cum):.12g}")
+PY
+    echo
+
     echo "## Experimental comparison"
     if [ -f calibration-comparison.txt ]; then
         cat calibration-comparison.txt

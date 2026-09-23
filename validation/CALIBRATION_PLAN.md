@@ -66,3 +66,12 @@ Pressure-preconditioner update:
 - pressure wall time increased ~3.6%, total ClockTime ~2.7%;
 - next gate: reduce PIMPLE pressure correctors from 3 to 2 while retaining
   the strict final p_rgh solve.
+
+
+Two-corrector candidate:
+- nCorrectors 3 -> 2 preserved W/D/L; fusion volume -0.151%;
+- pressure wall speedup 1.253x; total ClockTime 9626 -> 8926 s (1.078x);
+- final dynamic cells +0.03%;
+- formal acceptance pending continuity-error extraction from the existing log;
+- after this gate, stop pressure micro-optimization and move to quantitative
+  validation infrastructure (station-wise metallographic cross sections).

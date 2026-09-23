@@ -381,3 +381,24 @@ Then:
 ./SummarizeRun
 ./ComparePressure2Corr.py | tee pressure-2corr-comparison.txt
 ```
+
+
+## Two-corrector candidate
+
+The 0.5 mm PIMPLE A/B changed only `nCorrectors` from 3 to 2 while retaining
+PCG/DIC and the strict final `p_rghFinal` solve.
+
+Observed result:
+
+- fusion-zone W/D/L: unchanged at reported resolution;
+- fusion-zone volume: -0.151%;
+- final dynamic cells: +0.03%;
+- developed-stage pressure wall: 2946.9 -> 2351.8 s (1.253x);
+- total ClockTime: 9626 -> 8926 s (1.078x);
+- pressure correctors/step: 3.000 -> 2.000;
+- thermal cap hits: 7 -> 16.
+
+This is a strong performance candidate but is not promoted to the default until
+the continuity-error gate is checked from the raw solver log. `SummarizeRun`
+now extracts max local/global and cumulative continuity metrics automatically.
+No rerun is required: regenerate the summary from the existing solver log.

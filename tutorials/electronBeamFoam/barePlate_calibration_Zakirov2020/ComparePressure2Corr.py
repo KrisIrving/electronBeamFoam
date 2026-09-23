@@ -79,6 +79,16 @@ if new_clock is not None:
 if new_caps is not None:
     print(f"  last-interval thermal cap hits: {old['thermal_cap_hits']} -> {new_caps:.0f}")
 
+if cont_samples is not None and cont_samples > 0:
+    print("  continuity diagnostics:")
+    print(f"    samples        = {cont_samples:.0f}")
+    print(f"    max |local|    = {cont_local:.6g}")
+    print(f"    max |global|   = {cont_global:.6g}")
+    print(f"    final cumul    = {cont_final:.6g}")
+    print(f"    max |cumul|    = {cont_max_cum:.6g}")
+else:
+    print("  continuity diagnostics: unavailable; rerun ./SummarizeRun with current develop")
+
 print()
 print("Acceptance guide:")
 print("  - W/D/L and source conservation should remain within the accepted envelope;")
