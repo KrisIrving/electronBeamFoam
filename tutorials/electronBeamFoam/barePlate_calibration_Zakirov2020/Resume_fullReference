@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ -f run.pid ]; then
+    OLD="$(cat run.pid 2>/dev/null || true)"
+    if [ -n "$OLD" ] && kill -0 "$OLD" 2>/dev/null; then
+        echo "ERROR: run.pid still points to a live wrapper PID $OLD." >&2
+        echo "Stop the failed job completely before resuming." >&2
+        exit 2
+    fi
+fi
+
+exec 8>.electronBeamFoam.run.lock
+if ! flock -n 8; then
+    echo "ERROR: case lock is still held." >&2
+    exit 2
+fi
+flock -u 8
+
+nohup ./Allrun_resumeFullReference > log.Allrun.resume 2>&1 &
+echo $! > run.pid
+echo "Started resume wrapper PID $(cat run.pid)"

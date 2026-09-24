@@ -548,3 +548,34 @@ After completion:
 For the 3 mm run, the central-window mean over x=-0.5/0/+0.5 mm is the primary
 model observable; station spread quantifies whether the central track is
 sufficiently uniform. The global fusion-zone bounding box remains secondary.
+
+
+## Full-reference MPI peer failure and restart support
+
+The first 3 mm run reached t=3.0892e-4 s and then stopped immediately after a
+dynamic-refinement update with an OpenMPI TCP "Connection reset by peer"
+message. This is stronger evidence than the earlier generic AMR stall: at least
+one MPI peer disappeared or closed unexpectedly. The rank printing the TCP
+message is not necessarily the failed rank.
+
+Do not treat the wrapper PID as proof that the solver is healthy. `Status`
+now reports mpirun presence, live solver-rank count and explicit MPI failure
+signatures.
+
+Before stopping a failed job, capture:
+
+```bash
+./DiagnoseFailure
+```
+
+After all stale MPI processes are terminated and the cause has been reviewed,
+the written decomposed state can be resumed instead of repeating the run from
+zero:
+
+```bash
+./Resume_fullReference
+```
+
+The resume helper requires all 48 processor directories to agree on the latest
+written time, pins the accepted 3 mm input again, archives the pre-resume log,
+and starts electronBeamFoam directly from the decomposed latestTime state.

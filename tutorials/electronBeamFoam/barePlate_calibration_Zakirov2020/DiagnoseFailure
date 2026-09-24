@@ -1,0 +1,72 @@
+#!/bin/bash
+set -u
+
+OUT="${1:-failure-diagnostics.txt}"
+{
+    echo "# electronBeamFoam failure diagnostics"
+    date -Ins
+    echo
+
+    echo "## Process tree"
+    ps -eo pid,ppid,stat,%cpu,%mem,rss,etime,cmd | \
+        grep -E 'Allrun_parallel|mpirun.*electronBeamFoam|electronBeamFoam -parallel' | \
+        grep -v grep || true
+    echo
+
+    echo "## Solver error signatures"
+    grep -nEi 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION|malloc|bad_alloc|signal' \
+        log.electronBeamFoam | tail -80 || true
+    echo
+
+    echo "## Solver tail"
+    tail -120 log.electronBeamFoam || true
+    echo
+
+    echo "## Memory"
+    free -h || true
+    echo
+
+    echo "## Filesystem"
+    df -h . || true
+    echo
+
+    echo "## Processor directories"
+    python3 - <<'PY' || true
+from pathlib import Path
+
+procs = sorted(
+    [p for p in Path(".").glob("processor*") if p.is_dir() and p.name[9:].isdigit()],
+    key=lambda p: int(p.name[9:])
+)
+print("processor dirs =", len(procs))
+
+latest = {}
+for p in procs:
+    vals = []
+    for q in p.iterdir():
+        if not q.is_dir():
+            continue
+        try:
+            vals.append((float(q.name), q.name))
+        except ValueError:
+            pass
+    latest[p.name] = max(vals)[1] if vals else "NONE"
+
+from collections import Counter
+counts = Counter(latest.values())
+print("latest-time distribution:")
+for t, n in sorted(counts.items()):
+    print(f"  {t}: {n} ranks")
+PY
+    echo
+
+    echo "## Kernel OOM/segfault clues"
+    dmesg -T 2>&1 | grep -Ei 'oom|out of memory|killed process|segfault|electronBeamFoam|mpirun' | tail -80 || true
+    echo
+
+    echo "## Recent kernel journal clues"
+    journalctl -k --since '24 hours ago' --no-pager 2>&1 | \
+        grep -Ei 'oom|out of memory|killed process|segfault|electronBeamFoam|mpirun' | tail -80 || true
+} > "$OUT"
+
+echo "Wrote $OUT"

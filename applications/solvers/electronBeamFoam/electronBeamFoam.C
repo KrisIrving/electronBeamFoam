@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
     scalar profileDeltaTMin = GREAT;
     scalar profileDeltaTMax = 0.0;
 
-    Info<< "electronBeamFoam build tag = fusionSections-v4-pCorr2Baseline" << nl
+    Info<< "electronBeamFoam build tag = meshBalance-v5-pCorr2Baseline" << nl
         << "\nStarting time loop\n" << endl;
 
     if (performanceProfiling)
@@ -457,8 +457,22 @@ int main(int argc, char *argv[])
             const scalar invWall =
                 100.0/(wallTotal + VSMALL);
 
-            label globalCells = mesh.nCells();
+            const label localCells = mesh.nCells();
+            label globalCells = localCells;
+            label minLocalCells = localCells;
+            label maxLocalCells = localCells;
             reduce(globalCells, sumOp<label>());
+            reduce(minLocalCells, minOp<label>());
+            reduce(maxLocalCells, maxOp<label>());
+
+            label heaviestRank =
+                localCells == maxLocalCells ? Pstream::myProcNo() : -1;
+            reduce(heaviestRank, maxOp<label>());
+
+            const scalar meanLocalCells =
+                scalar(globalCells)/max(Pstream::nProcs(), label(1));
+            const scalar cellImbalance =
+                scalar(maxLocalCells)/(meanLocalCells + VSMALL);
 
             const scalar meanDeltaT =
                 profileDeltaTSum/max(profileSteps, label(1));
@@ -511,6 +525,11 @@ int main(int argc, char *argv[])
                     << meanDeltaT << " / "
                     << profileDeltaTMax << " s" << nl
                     << "    global cells         = " << globalCells << nl
+                    << "    local cells min/max  = "
+                    << minLocalCells << " / " << maxLocalCells << nl
+                    << "    cell imbalance max/mean = "
+                    << cellImbalance << nl
+                    << "    heaviest rank        = " << heaviestRank << nl
                     << "    wall total           = " << wallTotal
                     << " s (100%)" << nl
                     << "    mesh update          = " << wallMesh

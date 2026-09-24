@@ -1,0 +1,122 @@
+#!/bin/bash
+set -euo pipefail
+
+exec 9>.electronBeamFoam.run.lock
+if ! flock -n 9; then
+    echo "ERROR: case is locked by another run." >&2
+    exit 2
+fi
+
+NPROCS=48
+
+LATEST="$(python3 - <<'PY'
+from pathlib import Path
+from collections import Counter
+
+procs = sorted(
+    [p for p in Path(".").glob("processor*") if p.is_dir() and p.name[9:].isdigit()],
+    key=lambda p: int(p.name[9:])
+)
+if len(procs) != 48:
+    raise SystemExit(f"Expected 48 processor directories, found {len(procs)}")
+
+vals = []
+for p in procs:
+    times = []
+    for q in p.iterdir():
+        if q.is_dir():
+            try:
+                times.append((float(q.name), q.name))
+            except ValueError:
+                pass
+    if not times:
+        raise SystemExit(f"No time directories in {p}")
+    vals.append(max(times)[1])
+
+counts = Counter(vals)
+if len(counts) != 1:
+    raise SystemExit(f"Processor latest times disagree: {dict(counts)}")
+
+print(vals[0])
+PY
+)"
+
+python3 - "$LATEST" <<'PY'
+import sys
+t=float(sys.argv[1])
+if not (0.0 < t < 0.001):
+    raise SystemExit(f"Latest common time {t} is not a resumable partial 3 mm state")
+print(f"Resuming full reference from t={t:.12g} s")
+PY
+
+SOLVER_EXE="$(command -v electronBeamFoam || true)"
+if [ -z "$SOLVER_EXE" ] || [ ! -x "$SOLVER_EXE" ]; then
+    echo "ERROR: electronBeamFoam executable not found." >&2
+    exit 1
+fi
+
+REPO_ROOT="$(cd ../../.. && pwd)"
+if find "$REPO_ROOT/applications/solvers/electronBeamFoam" \
+        "$REPO_ROOT/src/electronBeamHeatSource" \
+        -type f \( -name '*.C' -o -name '*.H' -o -name 'files' -o -name 'options' \) \
+        -newer "$SOLVER_EXE" -print -quit | grep -q .; then
+    echo "ERROR: solver executable is stale. Rebuild with ./Allwmake first." >&2
+    exit 1
+fi
+
+RUN_INPUT_BACKUP="$(mktemp -d)"
+cp system/controlDict "$RUN_INPUT_BACKUP/controlDict"
+cp constant/timeVsBeamPosition "$RUN_INPUT_BACKUP/timeVsBeamPosition"
+cp constant/timeVsBeamPower "$RUN_INPUT_BACKUP/timeVsBeamPower"
+cp constant/ElectronBeamProperties "$RUN_INPUT_BACKUP/ElectronBeamProperties"
+cp constant/transportProperties "$RUN_INPUT_BACKUP/transportProperties"
+cp initial/T "$RUN_INPUT_BACKUP/T"
+cp system/fvSolution "$RUN_INPUT_BACKUP/fvSolution"
+cp system/decomposeParDict "$RUN_INPUT_BACKUP/decomposeParDict"
+
+restore_inputs()
+{
+    cp "$RUN_INPUT_BACKUP/controlDict" system/controlDict
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPosition" constant/timeVsBeamPosition
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPower" constant/timeVsBeamPower
+    cp "$RUN_INPUT_BACKUP/ElectronBeamProperties" constant/ElectronBeamProperties
+    cp "$RUN_INPUT_BACKUP/transportProperties" constant/transportProperties
+    cp "$RUN_INPUT_BACKUP/T" initial/T
+    cp "$RUN_INPUT_BACKUP/fvSolution" system/fvSolution
+    cp "$RUN_INPUT_BACKUP/decomposeParDict" system/decomposeParDict
+    rm -rf "$RUN_INPUT_BACKUP"
+}
+trap restore_inputs EXIT INT TERM
+
+PREHEAT_K=296 \
+BEAM_POWER=900 \
+SCAN_SPEED=3.0 \
+X_START=-0.0015 \
+X_END=0.0015 \
+ABSORPTIVITY=0.85 \
+BEAM_RADIUS=250e-6 \
+PENETRATION_DEPTH=18.9e-6 \
+EPSILON_TOLERANCE=1e-3 \
+MAX_TEMP_CORRECTOR=20 \
+python3 generateCalibrationTrack.py > log.generateTrack 2>&1
+
+cp system/fvSolution.pCorr2 system/fvSolution
+foamDictionary system/decomposeParDict -entry numberOfSubdomains -set "$NPROCS" \
+    > log.setNProcs.resume 2>&1
+
+mkdir -p failures
+STAMP="$(date +%Y%m%d-%H%M%S)"
+if [ -f log.electronBeamFoam ]; then
+    cp log.electronBeamFoam "failures/log.electronBeamFoam.preResume.$STAMP"
+fi
+if [ -f failure-diagnostics.txt ]; then
+    cp failure-diagnostics.txt "failures/failure-diagnostics.$STAMP.txt"
+fi
+
+export OMP_NUM_THREADS=1
+mpirun --bind-to core --map-by ppr:24:socket -np "$NPROCS" \
+    electronBeamFoam -parallel > log.electronBeamFoam 2>&1
+
+python3 CompareExperiment.py > calibration-comparison.txt 2>&1 || true
+python3 CompareSections.py > section-comparison.txt 2>&1 || true
+python3 CompareExperimentSections.py > section-experiment-comparison.txt 2>&1 || true

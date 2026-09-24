@@ -133,3 +133,21 @@ The next task is no longer a smoke test: run `Run_fullReference` for the first
 3 mm quantitative 296 K / 900 W / 3 m/s comparison. Use the final
 -0.5/0/+0.5 mm section mean and station spread as the primary metallographic
 observable.
+
+
+## First 3 mm run interrupted at 0.309 ms
+
+The first full-reference attempt reached t=0.0003089202 s before OpenMPI
+reported a TCP "Connection reset by peer" immediately after a
+dynamicRefineFvMesh refine/unrefine operation. The job must be treated as a
+failed/degraded MPI run, not as a merely slow mesh update.
+
+The failure cause is not yet assigned: possible causes include an externally
+killed/crashed rank, OOM/segfault, or a parallel dynamic-mesh failure. Kernel
+and process evidence must be collected before choosing a remedy.
+
+New tooling:
+- `DiagnoseFailure`: process/log/memory/kernel snapshot;
+- `Status`: live MPI-rank count and peer-failure detection;
+- `Resume_fullReference`: restart from the latest common decomposed write;
+- solver profiling: local-cell min/max, max/mean imbalance and heaviest rank.

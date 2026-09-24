@@ -116,16 +116,39 @@ fi
 
 echo 'Run health:'
 ACTIVE=0
+MPIRUN_PID=""
+RANKS=0
+EXPECTED=48
+
+if command -v foamDictionary >/dev/null 2>&1; then
+    N="$(foamDictionary system/decomposeParDict -entry numberOfSubdomains -value 2>/dev/null || true)"
+    [[ "$N" =~ ^[0-9]+$ ]] && EXPECTED="$N"
+fi
+
 if [ -f run.pid ]; then
     RP="$(cat run.pid 2>/dev/null || true)"
     if [ -n "$RP" ] && kill -0 "$RP" 2>/dev/null; then
         ACTIVE=1
         printf '  Allrun PID = %s (active)\n' "$RP"
+        MPIRUN_PID="$(pgrep -P "$RP" -f 'mpirun.*electronBeamFoam' | head -1 || true)"
     else
         printf '  run.pid = %s (not active)\n' "${RP:-unknown}"
     fi
 else
     echo '  no run.pid'
+fi
+
+if [ -n "$MPIRUN_PID" ]; then
+    RANKS="$(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | wc -l)"
+    printf '  mpirun PID = %s\n' "$MPIRUN_PID"
+    printf '  solver ranks = %s / %s\n' "$RANKS" "$EXPECTED"
+else
+    echo '  mpirun not found under Allrun'
+fi
+
+if grep -Eq 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION' "$LOG"; then
+    echo '  FAILURE SIGNATURE detected in solver log.'
+    grep -E 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION' "$LOG" | tail -5 | sed 's/^/    /'
 fi
 
 if [ -f "$LOG" ]; then
@@ -135,10 +158,15 @@ if [ -f "$LOG" ]; then
     printf '  log age = %d s\n' "$AGE"
 
     if [ "$ACTIVE" -eq 1 ] && [ "$AGE" -ge 300 ]; then
-        echo '  WARNING: active process but solver log has not advanced for >=300 s.'
+        echo '  WARNING: active wrapper but solver log has not advanced for >=300 s.'
         echo '  Last solver lines:'
         tail -8 "$LOG" | sed 's/^/    /'
-        if tail -20 "$LOG" | grep -Eq 'Selected .*cells for refinement|Refined from|Unrefined from'; then
+
+        if [ -z "$MPIRUN_PID" ] || [ "$RANKS" -lt "$EXPECTED" ]; then
+            echo '  State: FAILED/DEGRADED MPI job; waiting will not recover it.'
+        elif tail -20 "$LOG" | grep -q 'Connection reset by peer'; then
+            echo '  State: MPI peer failure during/after mesh update; waiting is not useful.'
+        elif tail -20 "$LOG" | grep -Eq 'Selected .*cells for refinement|Refined from|Unrefined from'; then
             echo '  Suspect stage: dynamic mesh topology update / field mapping.'
         fi
     fi
