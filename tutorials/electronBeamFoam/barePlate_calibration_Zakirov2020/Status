@@ -16,6 +16,50 @@ printf 'Latest execution time : '
 grep 'ExecutionTime = ' "$LOG" | tail -1 || true
 printf 'Latest deltaT         : '
 grep 'deltaT = ' "$LOG" | tail -1 || true
+
+echo 'Recent simulation throughput:'
+python3 - "$LOG" <<'PY' || true
+import re
+import sys
+from pathlib import Path
+
+log = Path(sys.argv[1])
+time_re = re.compile(r"^\s*Time = ([0-9.eE+-]+)")
+exec_re = re.compile(r"^ExecutionTime = ([0-9.eE+-]+) s")
+pairs = []
+cur_t = None
+with log.open(errors="replace") as f:
+    for line in f:
+        m = time_re.match(line)
+        if m:
+            cur_t = float(m.group(1))
+            continue
+        m = exec_re.match(line)
+        if m and cur_t is not None:
+            pairs.append((cur_t, float(m.group(1))))
+
+if len(pairs) < 2:
+    print("  insufficient completed time-step samples")
+else:
+    def report(label, seq):
+        t0, e0 = seq[0]
+        t1, e1 = seq[-1]
+        ds_us = (t1 - t0)*1e6
+        dw = e1 - e0
+        if ds_us <= 0 or dw <= 0:
+            print(f"  {label}: unavailable")
+            return
+        sec_per_us = dw/ds_us
+        sim_us_per_hr = 3600.0/sec_per_us
+        eta_hr = max(0.0, (1.0e-3 - t1)*1e6*sec_per_us/3600.0)
+        print(
+            f"  {label}: {sec_per_us:.2f} wall-s/sim-us  "
+            f"({sim_us_per_hr:.2f} sim-us/wall-h), ETA~{eta_hr:.1f} h"
+        )
+
+    report("recent 200 steps", pairs[-200:])
+    report("since resume log", pairs)
+PY
 # Legacy centralFirstHit distance is intentionally omitted here. For the
 # current multiRayFirstHit model, the mean/min/max first-hit diagnostics below
 # are the relevant quantities.
@@ -43,6 +87,12 @@ printf 'Latest pressure share  : '
 grep '    pressure             =' "$LOG" | tail -1 || true
 printf 'Latest beam share      : '
 grep 'electron beam' "$LOG" | tail -1 || true
+printf 'Latest local cells     : '
+grep 'local cells min/max' "$LOG" | tail -1 || true
+printf 'Latest cell imbalance  : '
+grep 'cell imbalance max/mean' "$LOG" | tail -1 || true
+printf 'Latest heaviest rank   : '
+grep 'heaviest rank' "$LOG" | tail -1 || true
 
 echo 'Latest melt-pool:'
 if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
@@ -142,6 +192,27 @@ if [ -n "$MPIRUN_PID" ]; then
     RANKS="$(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | wc -l)"
     printf '  mpirun PID = %s\n' "$MPIRUN_PID"
     printf '  solver ranks = %s / %s\n' "$RANKS" "$EXPECTED"
+    if [ "$RANKS" -gt 0 ]; then
+        CHILD_PIDS="$(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | paste -sd, -)"
+        if [ -n "$CHILD_PIDS" ]; then
+            ps -p "$CHILD_PIDS" -o %cpu=,rss= 2>/dev/null | \
+            awk '
+                NR==1 {cmin=$1; cmax=$1; rmax=$2}
+                {
+                    csum+=$1;
+                    if ($1<cmin) cmin=$1;
+                    if ($1>cmax) cmax=$1;
+                    if ($2>rmax) rmax=$2;
+                }
+                END {
+                    if (NR>0)
+                        printf "  rank CPU min/mean/max = %.1f / %.1f / %.1f %%\n  max rank RSS = %.1f MiB\n",
+                            cmin, csum/NR, cmax, rmax/1024.0;
+                }'
+        fi
+        TOTAL_SOLVER="$(pgrep -f 'electronBeamFoam -parallel' | wc -l)"
+        printf '  system-wide solver processes = %s\n' "$TOTAL_SOLVER"
+    fi
 else
     echo '  mpirun not found under Allrun'
 fi
