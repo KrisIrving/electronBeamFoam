@@ -579,3 +579,22 @@ zero:
 The resume helper requires all 48 processor directories to agree on the latest
 written time, pins the accepted 3 mm input again, archives the pre-resume log,
 and starts electronBeamFoam directly from the decomposed latestTime state.
+
+
+## Resume policy after the 0.309 ms interruption
+
+The failed full-reference attempt is never restarted from zero unless the
+decomposed checkpoint itself is corrupt. The intended recovery point is the
+latest time written consistently by all 48 processor directories (expected
+0.0003 s for the first interruption).
+
+Before resuming:
+
+```bash
+./CheckResumeCheckpoint
+```
+
+A valid recovery reports 48 processor directories, one common latest written
+time, and PASS. `Resume_fullReference` preserves `processor*`,
+`postProcessing` and all accepted diagnostics; it does not run blockMesh,
+setFields or decomposePar again.

@@ -151,3 +151,12 @@ New tooling:
 - `Status`: live MPI-rank count and peer-failure detection;
 - `Resume_fullReference`: restart from the latest common decomposed write;
 - solver profiling: local-cell min/max, max/mean imbalance and heaviest rank.
+
+
+## Resume decision after MPI peer-reset evidence
+
+The first full-reference interruption will be resumed from the latest common
+written decomposed state, not repeated from t=0. System evidence showed ample
+RAM and disk and all 48 solver processes still present, while repeated OpenMPI
+TCP peer-reset messages and a multi-hour stale log indicate a failed/stalled
+communication state. The expected recovery checkpoint is t=0.0003 s.

@@ -1,0 +1,47 @@
+#!/bin/bash
+set -euo pipefail
+
+python3 - <<'PY'
+from pathlib import Path
+from collections import Counter
+
+procs = sorted(
+    [p for p in Path(".").glob("processor*")
+     if p.is_dir() and p.name[9:].isdigit()],
+    key=lambda p: int(p.name[9:])
+)
+
+print(f"processor directories: {len(procs)}")
+if len(procs) != 48:
+    raise SystemExit("ERROR: expected 48 processor directories")
+
+latest = {}
+common_sets = None
+for p in procs:
+    vals = []
+    for q in p.iterdir():
+        if not q.is_dir():
+            continue
+        try:
+            vals.append((float(q.name), q.name))
+        except ValueError:
+            pass
+    names = {name for _, name in vals}
+    common_sets = names if common_sets is None else common_sets & names
+    latest[p.name] = max(vals)[1] if vals else "NONE"
+
+counts = Counter(latest.values())
+print("latest-time distribution:")
+for t, n in sorted(counts.items()):
+    print(f"  {t}: {n} ranks")
+
+if not common_sets:
+    raise SystemExit("ERROR: no common written time across all ranks")
+
+common = max(common_sets, key=float)
+print(f"latest common written time: {common}")
+if not (0.0 < float(common) < 0.001):
+    raise SystemExit("ERROR: latest common time is not a resumable partial full-reference state")
+
+print("checkpoint verification: PASS")
+PY

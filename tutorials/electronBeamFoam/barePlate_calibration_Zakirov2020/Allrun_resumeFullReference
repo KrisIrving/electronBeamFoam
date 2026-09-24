@@ -47,6 +47,7 @@ t=float(sys.argv[1])
 if not (0.0 < t < 0.001):
     raise SystemExit(f"Latest common time {t} is not a resumable partial 3 mm state")
 print(f"Resuming full reference from t={t:.12g} s")
+print("Resume mode: preserving processor* and postProcessing; no cleanup/decompose.")
 PY
 
 SOLVER_EXE="$(command -v electronBeamFoam || true)"
