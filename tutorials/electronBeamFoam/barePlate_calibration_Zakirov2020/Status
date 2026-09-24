@@ -25,7 +25,9 @@ from pathlib import Path
 
 log = Path(sys.argv[1])
 time_re = re.compile(r"^\s*Time = ([0-9.eE+-]+)")
-exec_re = re.compile(r"^ExecutionTime = ([0-9.eE+-]+) s")
+timing_re = re.compile(
+    r"^ExecutionTime = ([0-9.eE+-]+) s\s+ClockTime = ([0-9.eE+-]+) s"
+)
 pairs = []
 cur_t = None
 with log.open(errors="replace") as f:
@@ -34,27 +36,37 @@ with log.open(errors="replace") as f:
         if m:
             cur_t = float(m.group(1))
             continue
-        m = exec_re.match(line)
+        m = timing_re.match(line)
         if m and cur_t is not None:
-            pairs.append((cur_t, float(m.group(1))))
+            pairs.append((cur_t, float(m.group(1)), float(m.group(2))))
 
 if len(pairs) < 2:
     print("  insufficient completed time-step samples")
 else:
     def report(label, seq):
-        t0, e0 = seq[0]
-        t1, e1 = seq[-1]
+        t0, cpu0, wall0 = seq[0]
+        t1, cpu1, wall1 = seq[-1]
         ds_us = (t1 - t0)*1e6
-        dw = e1 - e0
-        if ds_us <= 0 or dw <= 0:
+        dcpu = cpu1 - cpu0
+        dwall = wall1 - wall0
+        if ds_us <= 0 or dwall <= 0:
             print(f"  {label}: unavailable")
             return
-        sec_per_us = dw/ds_us
-        sim_us_per_hr = 3600.0/sec_per_us
-        eta_hr = max(0.0, (1.0e-3 - t1)*1e6*sec_per_us/3600.0)
+
+        wall_sec_per_us = dwall/ds_us
+        sim_us_per_wall_hr = 3600.0/wall_sec_per_us
+        eta_hr = max(0.0, (1.0e-3 - t1)*1e6*wall_sec_per_us/3600.0)
+
+        cpu_sec_per_us = dcpu/ds_us if dcpu > 0 else float("nan")
+        cpu_wall_ratio = dcpu/dwall if dcpu > 0 else float("nan")
+
         print(
-            f"  {label}: {sec_per_us:.2f} wall-s/sim-us  "
-            f"({sim_us_per_hr:.2f} sim-us/wall-h), ETA~{eta_hr:.1f} h"
+            f"  {label}: {wall_sec_per_us:.2f} wall-s/sim-us  "
+            f"({sim_us_per_wall_hr:.2f} sim-us/wall-h), ETA~{eta_hr:.1f} h"
+        )
+        print(
+            f"    master CPU: {cpu_sec_per_us:.2f} cpu-s/sim-us, "
+            f"CPU/Clock={cpu_wall_ratio:.3f}"
         )
 
     report("recent 200 steps", pairs[-200:])
