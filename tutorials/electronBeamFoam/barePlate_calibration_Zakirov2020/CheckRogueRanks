@@ -1,0 +1,45 @@
+#!/bin/bash
+set -euo pipefail
+
+MPIRUN_PID="${1:-}"
+if [ -z "$MPIRUN_PID" ]; then
+    if [ -f run.pid ]; then
+        RUN_PID="$(cat run.pid 2>/dev/null || true)"
+        if [ -n "$RUN_PID" ]; then
+            MPIRUN_PID="$(pgrep -P "$RUN_PID" -f 'mpirun.*electronBeamFoam' | head -1 || true)"
+        fi
+    fi
+fi
+
+if [ -z "$MPIRUN_PID" ]; then
+    echo "ERROR: current mpirun PID could not be determined." >&2
+    exit 1
+fi
+
+mapfile -t CURRENT < <(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | sort -n)
+mapfile -t ALL < <(pgrep -f '^electronBeamFoam -parallel$' | sort -n)
+
+echo "Current mpirun PID: $MPIRUN_PID"
+echo "Current solver children: ${#CURRENT[@]}"
+echo "System-wide solver processes: ${#ALL[@]}"
+
+A="$(mktemp)"
+B="$(mktemp)"
+trap 'rm -f "$A" "$B"' EXIT
+printf '%s\n' "${CURRENT[@]}" > "$A"
+printf '%s\n' "${ALL[@]}" > "$B"
+mapfile -t ROGUE < <(comm -13 "$A" "$B")
+
+if [ "${#ROGUE[@]}" -eq 0 ]; then
+    echo "No rogue solver processes."
+    exit 0
+fi
+
+echo "Rogue solver process(es):"
+for pid in "${ROGUE[@]}"; do
+    ps -p "$pid" -o pid=,ppid=,stat=,%cpu=,%mem=,rss=,etime=,cmd=
+done
+
+echo
+echo "These PIDs are NOT children of the current mpirun."
+echo "Review them before killing anything."

@@ -207,23 +207,99 @@ if [ -n "$MPIRUN_PID" ]; then
     if [ "$RANKS" -gt 0 ]; then
         CHILD_PIDS="$(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | paste -sd, -)"
         if [ -n "$CHILD_PIDS" ]; then
-            ps -p "$CHILD_PIDS" -o %cpu=,rss= 2>/dev/null | \
-            awk '
-                NR==1 {cmin=$1; cmax=$1; rmax=$2}
-                {
-                    csum+=$1;
-                    if ($1<cmin) cmin=$1;
-                    if ($1>cmax) cmax=$1;
-                    if ($2>rmax) rmax=$2;
-                }
-                END {
-                    if (NR>0)
-                        printf "  rank CPU min/mean/max = %.1f / %.1f / %.1f %%\n  max rank RSS = %.1f MiB\n",
-                            cmin, csum/NR, cmax, rmax/1024.0;
-                }'
+            python3 - "$CHILD_PIDS" <<'PY' || true
+import os
+import sys
+import time
+
+pids = [int(x) for x in sys.argv[1].split(",") if x]
+clk = os.sysconf(os.sysconf_names["SC_CLK_TCK"])
+page = os.sysconf("SC_PAGE_SIZE")
+
+def sample(pid):
+    try:
+        stat = open(f"/proc/{pid}/stat").read().split()
+        ticks = int(stat[13]) + int(stat[14])
+        rss_pages = int(open(f"/proc/{pid}/statm").read().split()[1])
+        return ticks, rss_pages*page
+    except (FileNotFoundError, ProcessLookupError, IndexError, ValueError):
+        return None
+
+a = {p: sample(p) for p in pids}
+t0 = time.monotonic()
+time.sleep(1.0)
+b = {p: sample(p) for p in pids}
+dt = time.monotonic() - t0
+
+cpus = []
+rss = []
+for p in pids:
+    if a.get(p) is None or b.get(p) is None:
+        continue
+    cpus.append(100.0*(b[p][0]-a[p][0])/clk/dt)
+    rss.append(b[p][1]/1024.0/1024.0)
+
+if cpus:
+    print(
+        "  rank CPU instantaneous min/mean/max = "
+        f"{min(cpus):.1f} / {sum(cpus)/len(cpus):.1f} / {max(cpus):.1f} %"
+    )
+if rss:
+    print(f"  max rank RSS = {max(rss):.1f} MiB")
+PY
         fi
-        TOTAL_SOLVER="$(pgrep -f 'electronBeamFoam -parallel' | wc -l)"
+
+        mapfile -t CURRENT_PIDS < <(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | sort -n)
+        mapfile -t ALL_PIDS < <(pgrep -f '^electronBeamFoam -parallel
+else
+    echo '  mpirun not found under Allrun'
+fi
+
+if grep -Eq 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION' "$LOG"; then
+    echo '  FAILURE SIGNATURE detected in solver log.'
+    grep -E 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION' "$LOG" | tail -5 | sed 's/^/    /'
+fi
+
+if [ -f "$LOG" ]; then
+    NOW="$(date +%s)"
+    MTIME="$(stat -c %Y "$LOG" 2>/dev/null || echo "$NOW")"
+    AGE=$((NOW - MTIME))
+    printf '  log age = %d s\n' "$AGE"
+
+    if [ "$ACTIVE" -eq 1 ] && [ "$AGE" -ge 300 ]; then
+        echo '  WARNING: active wrapper but solver log has not advanced for >=300 s.'
+        echo '  Last solver lines:'
+        tail -8 "$LOG" | sed 's/^/    /'
+
+        if [ -z "$MPIRUN_PID" ] || [ "$RANKS" -lt "$EXPECTED" ]; then
+            echo '  State: FAILED/DEGRADED MPI job; waiting will not recover it.'
+        elif tail -20 "$LOG" | grep -q 'Connection reset by peer'; then
+            echo '  State: MPI peer failure during/after mesh update; waiting is not useful.'
+        elif tail -20 "$LOG" | grep -Eq 'Selected .*cells for refinement|Refined from|Unrefined from'; then
+            echo '  Suspect stage: dynamic mesh topology update / field mapping.'
+        fi
+    fi
+fi
+ | sort -n)
+        TOTAL_SOLVER="${#ALL_PIDS[@]}"
         printf '  system-wide solver processes = %s\n' "$TOTAL_SOLVER"
+
+        if [ "$TOTAL_SOLVER" -gt "$RANKS" ]; then
+            CURRENT_FILE="$(mktemp)"
+            ALL_FILE="$(mktemp)"
+            printf '%s\n' "${CURRENT_PIDS[@]}" > "$CURRENT_FILE"
+            printf '%s\n' "${ALL_PIDS[@]}" > "$ALL_FILE"
+            mapfile -t ROGUE_PIDS < <(comm -13 "$CURRENT_FILE" "$ALL_FILE")
+            rm -f "$CURRENT_FILE" "$ALL_FILE"
+
+            if [ "${#ROGUE_PIDS[@]}" -gt 0 ]; then
+                echo '  WARNING: solver process(es) exist outside current mpirun:'
+                for pid in "${ROGUE_PIDS[@]}"; do
+                    ps -p "$pid" -o pid=,ppid=,stat=,%cpu=,rss=,etime=,cmd= | \
+                        sed 's/^/    /' || true
+                done
+            fi
+        fi
     fi
 else
     echo '  mpirun not found under Allrun'
