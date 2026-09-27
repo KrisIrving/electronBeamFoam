@@ -104,6 +104,16 @@ Use:
 ./SummarizeRun
 ```
 
+Detailed interpretation of every `./Status` field is maintained in:
+
+```text
+docs/STATUS_MONITORING.md
+```
+
+The guide covers data freshness, throughput formulas, beam diagnostics,
+performance profiling, MPI imbalance, physical outputs, run-health warnings
+and known limitations.
+
 Primary calibration output:
 
 ```text

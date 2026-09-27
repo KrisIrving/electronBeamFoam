@@ -69,3 +69,16 @@ For papers/theses/reports:
   sensitivity-study design, numerical safeguards and limitations.
 
 The log is intentionally more candid than publication prose.
+
+
+## Operational monitoring reference
+
+The detailed interpretation of the calibration `./Status` monitor is kept in:
+
+```text
+docs/STATUS_MONITORING.md
+```
+
+When monitor semantics change, update that document. If the change affects
+research interpretation, also record the reason in a dated `log/entries/`
+entry.

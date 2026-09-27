@@ -36,3 +36,14 @@ among MPI ranks, which approximates the critical parallel path.
 Use the same 100 microsecond single-track benchmark first. The next optimisation
 should target the dominant measured category rather than the electron-beam
 source by assumption.
+
+
+## Live interpretation
+
+For field-by-field interpretation of profiler values as shown by the
+calibration `./Status` command, and for combining profiler shares with
+`deltaT`, MPI cell imbalance and run-health information, see:
+
+```text
+docs/STATUS_MONITORING.md
+```
