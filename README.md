@@ -311,3 +311,23 @@ OPENFOAM® is a registered trademark of OpenCFD Limited, producer and distributo
  of the OpenFOAM software via [www.openfoam.com](https://www.openfoam.com).
 
 ![visitors](https://visitor-badge.deta.dev/badge?page_id=micmog.LaserbeamFoam)
+
+
+## electronBeamFoam development log
+
+The EPBF extension is developed with an explicit research log that records
+hypotheses, controlled A/B tests, rejected alternatives, accepted numerical
+baselines and the reasoning behind model upgrades.
+
+See:
+
+```text
+log/README.md
+log/METHODOLOGY.md
+log/DEVELOPMENT_HISTORY.md
+log/DECISIONS.md
+log/EXPERIMENT_LEDGER.md
+```
+
+This chronological record complements the current-state documentation in
+`docs/` and machine-readable validation data in `validation/`.
