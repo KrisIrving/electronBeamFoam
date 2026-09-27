@@ -18,7 +18,7 @@ This ledger is intentionally compact. Detailed accepted values live in
 | Full Zakirov reference | first quantitative full track | 3 mm | mean W=439.354 um, D=67.250 um | ACCEPT baseline |
 | Full-reference recovery | checkpoint resume after MPI peer reset | 0.3 -> 1.0 ms | completed without restart from zero | ACCEPT recovery workflow |
 | Long-track MPI diagnosis | dynamic AMR + Scotch | 3 mm | final max/mean cell imbalance 3.944 | PERFORMANCE ISSUE |
-| Decomposition A/B | Scotch -> simpleXZ (8 1 6) | 0.5 mm | **completed; result pending review** | ACTIVE |
+| Decomposition A/B | Scotch -> simpleXZ (8 1 6) | 0.5 mm | W/D/L unchanged; V -0.237%; ClockTime 2.095x faster; imbalance 1.683 | PASS -> 1 mm |
 
 ## Evidence paths
 

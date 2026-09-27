@@ -105,3 +105,15 @@ Immediate next gate after the completed 3 mm baseline:
 3. only then promote a decomposition strategy for the six-condition campaign;
 4. follow with depth mesh sensitivity and a small beam-radius/penetration
    source-shape sensitivity matrix.
+
+
+0.5 mm simpleXZ gate passed:
+- W/D/L unchanged versus accepted Scotch baseline;
+- fusion volume -0.237%;
+- ClockTime 8926 -> 4260 s (2.095x);
+- final-interval wall 6535 -> 2979 s (2.194x);
+- final simpleXZ imbalance max/mean=1.683;
+- initial base decomposition was exactly 14,520 cells/rank;
+- final interval used 25.6% fewer time steps, but step-normalized wall cost
+  still improved ~1.63x;
+- next gate: 1 mm simpleXZ confirmation before campaign promotion.

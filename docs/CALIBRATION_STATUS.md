@@ -182,3 +182,18 @@ The first full reference showed max/mean cell imbalance ~3.94. The next run is
 therefore not another physics condition. It is a 0.5 mm, otherwise identical
 decomposition probe using a simple (8 1 6) x/y/z partition. The goal is to
 reduce dynamic-AMR load imbalance while preserving the accepted W/D/L result.
+
+
+## simpleXZ 0.5 mm gate — passed
+
+The geometry-aware `simpleXZ (8 1 6)` decomposition preserved fusion-zone
+W/D/L exactly at reported resolution and changed volume by only -0.237%.
+ClockTime fell from 8926 s to 4260 s (2.095x), with final max/mean cell
+imbalance 1.683.
+
+The final interval also contained 25.6% fewer time steps than the historical
+Scotch baseline. After normalising wall time by step count, simpleXZ still
+improved total per-step cost by ~1.63x, so the benefit is not only a timestep
+trajectory effect.
+
+Promotion is intentionally withheld until a 1 mm moving-track confirmation.

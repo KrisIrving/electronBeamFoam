@@ -1,0 +1,72 @@
+{
+  "source": "0.5 mm geometry-aware decomposition A/B",
+  "date": "2026-09-27",
+  "baseline": "validation/Zakirov2020_preflight_accepted_baseline.json",
+  "probe": {
+    "decomposition": "simple",
+    "n": [
+      8,
+      1,
+      6
+    ],
+    "ranks": 48,
+    "track_length_m": 0.0005,
+    "preheat_K": 296,
+    "power_W": 900,
+    "scan_speed_m_s": 3,
+    "absorptivity": 0.85,
+    "beam_radius_m": 0.00025,
+    "penetration_depth_m": 0.0000189,
+    "fusionZone": {
+      "length_m": 0.000685187253281,
+      "width_m": 0.000435187253281,
+      "depth_m": 0.0000609995065513,
+      "volume_m3": 5.81220258076e-12,
+      "peakTmax_K": 3323.41766225
+    },
+    "final_interval": {
+      "steps": 2671,
+      "pressure_correctors": 5342,
+      "thermal_correctors": 9917,
+      "thermal_cap_hits": 0,
+      "mean_deltaT_s": 3.119930114e-8,
+      "global_cells": 1919909,
+      "local_cells_min": 37620,
+      "local_cells_max": 67300,
+      "cell_imbalance_max_over_mean": 1.682579747,
+      "heaviest_rank": 28,
+      "wall_total_s": 2978.881549,
+      "pressure_s": 1058.522944,
+      "thermal_phase_s": 593.4383163
+    },
+    "continuity": {
+      "samples": 8373,
+      "max_abs_local": 7.229808832e-7,
+      "max_abs_global": 9.219353767e-10,
+      "final_cumulative": 7.830376582e-9,
+      "max_abs_cumulative": 7.883328222e-9
+    },
+    "clock_time_s": 4260
+  },
+  "comparison": {
+    "W_delta_percent": 0,
+    "D_delta_percent": 0,
+    "L_delta_percent": 0,
+    "volume_delta_percent": -0.237,
+    "global_cells_delta_percent": -0.2001290182,
+    "total_clock_speedup": 2.0953051643,
+    "final_interval_wall_speedup": 2.1937800482,
+    "pressure_wall_speedup": 2.2217611468,
+    "thermal_wall_speedup": 2.2420470897,
+    "final_interval_steps_delta_percent": -25.5781554751,
+    "step_normalized_total_wall_speedup": 1.6326515767,
+    "step_normalized_pressure_speedup": 1.6534756264,
+    "step_normalized_thermal_speedup": 1.6685727993
+  },
+  "initial_decomposition": {
+    "cells_per_rank_min": 14520,
+    "cells_per_rank_max": 14520,
+    "note": "decomposePar simple [48] produced exactly equal base-cell counts on all ranks"
+  },
+  "decision": "passes 0.5 mm gate; promote to 1 mm confirmation before campaign default"
+}

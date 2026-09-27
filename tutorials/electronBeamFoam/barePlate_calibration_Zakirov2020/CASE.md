@@ -633,3 +633,26 @@ This is a strict numerical/performance A/B. Physics and solver settings remain
 at the accepted baseline. If simpleXZ materially reduces imbalance and wall
 time without changing W/D/L, validate it on 1 mm before promoting it to the
 full calibration campaign.
+
+
+## 1 mm simpleXZ confirmation
+
+The 0.5 mm decomposition gate passed strongly but is too short to prove that
+dynamic-AMR imbalance will remain controlled as the beam travels.
+
+Run:
+
+```bash
+./Run_decompSimpleXZ_1mm
+```
+
+Then:
+
+```bash
+./SummarizeRun
+./CompareDecomposition1mm.py | tee decomposition-1mm-comparison.txt
+```
+
+This run keeps the accepted numerical/physics baseline and uses a 1 mm
+`x=-0.5...+0.5 mm` scan. It is a performance/robustness confirmation, not a
+new experimental calibration point.
