@@ -86,3 +86,14 @@ Section-diagnostic gate:
 - +/-0.5 mm stations remained zero as expected outside the short scan;
 - continuity max |global| = 3.85e-10;
 - station-wise diagnostic accepted for the first full 3 mm quantitative run.
+
+
+First completed 3 mm quantitative reference:
+- 296 K / 900 W / 3000 mm/s completed;
+- primary central-window mean: W=439.354 um, D=67.250 um;
+- experimental errors: W -16.31%, D +31.86%;
+- central station spread: dW=6.25 um, dD=0;
+- beam power conservation and continuity passed;
+- parallel cell imbalance reached 3.94 max/mean;
+- next gate is performance-safe load balancing plus source-shape/mesh
+  sensitivities before launching the full six-condition campaign.

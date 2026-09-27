@@ -1,0 +1,98 @@
+{
+  "source": "first completed 3 mm Zakirov2020 296 K / 900 W / 3000 mm/s reference",
+  "status": "completed",
+  "build_tag": "meshBalance-v5-pCorr2Baseline",
+  "numerical_baseline": {
+    "mesh_profile": "gradedYSmooth",
+    "epsilonTolerance": 0.001,
+    "pressure_solver": "PCG+DIC",
+    "pimple_nCorrectors": 2,
+    "mpi_ranks": 48
+  },
+  "beam": {
+    "incident_power_W": 900,
+    "absorptivity": 0.85,
+    "deposited_power_W": 765,
+    "beamRadius_m": 0.00025,
+    "penetrationDepth_m": 0.0000189,
+    "beamlets": 60,
+    "final_hit_fraction": 1,
+    "final_power_error_W": 7.389644452e-12
+  },
+  "experiment": {
+    "width_um": 525,
+    "depth_um": 51
+  },
+  "station_sections": [
+    {
+      "station_mm": -0.5,
+      "cells": 5285,
+      "width_um": 441.437253281,
+      "depth_um": 67.2495065506
+    },
+    {
+      "station_mm": 0,
+      "cells": 4519,
+      "width_um": 435.187253281,
+      "depth_um": 67.2495065506
+    },
+    {
+      "station_mm": 0.5,
+      "cells": 3643,
+      "width_um": 441.437253281,
+      "depth_um": 67.2495065506
+    }
+  ],
+  "primary_observable": {
+    "central_window_mean_width_um": 439.354,
+    "central_window_mean_depth_um": 67.25,
+    "width_error_percent": -16.31,
+    "depth_error_percent": 31.86,
+    "station_width_spread_um": 6.25,
+    "station_depth_spread_um": 0
+  },
+  "whole_track_fusion_envelope": {
+    "length_um": 3191.437253,
+    "width_um": 447.6872533,
+    "depth_um": 67.24950655,
+    "volume_mm3": 0.04499891743,
+    "peakT_K": 3409.858843
+  },
+  "final_instantaneous_melt_pool": {
+    "length_um": 1716.437253,
+    "width_um": 453.9372533,
+    "depth_um": 67.24950655,
+    "volume_mm3": 0.01304784109,
+    "Tmax_K": 3443.120664,
+    "Umax_m_s": 10.84173042,
+    "recoilMax_kPa": 30.86631532
+  },
+  "continuity": {
+    "samples": 112401,
+    "max_abs_local": 3.788488008e-8,
+    "max_abs_global": 8.22713157e-10,
+    "final_cumulative": 5.075422177e-8,
+    "max_abs_cumulative": 5.077477388e-8
+  },
+  "final_performance_interval": {
+    "steps": 5798,
+    "thermal_correctors": 44675,
+    "thermal_cap_hits": 914,
+    "mean_deltaT_s": 1.724732666e-8,
+    "global_cells": 2896318,
+    "local_cells_min": 14375,
+    "local_cells_max": 237982,
+    "cell_imbalance_max_over_mean": 3.944019959,
+    "heaviest_rank": 21,
+    "wall_s": 25610.93024,
+    "pressure_s": 8514.742474,
+    "thermal_s": 7028.488836
+  },
+  "resumed_clock_time_s": 215262,
+  "notes": [
+    "Run resumed from the 0.0003 s decomposed checkpoint after an MPI peer-reset interruption.",
+    "Central station W/D values plateaued by the late scan; station spread is small.",
+    "Parallel cell imbalance approached 4x max/mean and is the dominant performance concern before a multi-condition campaign.",
+    "Interface-only thermal cap hits grew substantially in some late intervals and remain a numerical-fidelity item for publication-quality validation."
+  ]
+}

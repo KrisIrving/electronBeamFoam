@@ -160,3 +160,17 @@ written decomposed state, not repeated from t=0. System evidence showed ample
 RAM and disk and all 48 solver processes still present, while repeated OpenMPI
 TCP peer-reset messages and a multi-hour stale log indicate a failed/stalled
 communication state. The expected recovery checkpoint is t=0.0003 s.
+
+
+## First full 3 mm reference — completed
+
+The 296 K / 900 W / 3 m/s / 3 mm run reached End. The primary central-window
+fusion-zone result is W=439.354 um and D=67.250 um versus the stored
+experimental 525/51 um target, i.e. -16.31% width and +31.86% depth.
+
+The three central stations differ by only 6.25 um in width and 0 um in depth,
+so they are sufficiently consistent to treat the central window as developed
+for this baseline.
+
+Before a multi-condition calibration sweep, address the ~3.94 max/mean MPI
+cell imbalance and perform depth mesh/source-shape sensitivity checks.

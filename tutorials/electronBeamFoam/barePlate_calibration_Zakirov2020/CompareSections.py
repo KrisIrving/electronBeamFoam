@@ -59,7 +59,21 @@ if central:
 
 print()
 print("Zakirov target stored for this case: W=525 um, D=51 um")
-print(
-    "Do not fit source parameters from a short-track section smoke test. "
-    "Use the full 3 mm run and inspect station-to-station spread first."
-)
+track_log = case / "log.generateTrack"
+track_length = None
+if track_log.is_file():
+    import re
+    m = re.search(r"^\\s*track length\\s*=\\s*([-+0-9.eE]+)", track_log.read_text(), re.M)
+    if m:
+        track_length = float(m.group(1))
+
+if track_length is not None and abs(track_length - 3.0e-3) <= 1.0e-6:
+    print(
+        "Full 3 mm reference: use the central-window mean together with "
+        "station spread for quantitative comparison."
+    )
+else:
+    print(
+        "Short-track diagnostic only: do not fit source parameters from "
+        "this section test."
+    )
