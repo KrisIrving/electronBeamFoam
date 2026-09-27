@@ -174,3 +174,11 @@ for this baseline.
 
 Before a multi-condition calibration sweep, address the ~3.94 max/mean MPI
 cell imbalance and perform depth mesh/source-shape sensitivity checks.
+
+
+## Immediate next task: MPI decomposition A/B
+
+The first full reference showed max/mean cell imbalance ~3.94. The next run is
+therefore not another physics condition. It is a 0.5 mm, otherwise identical
+decomposition probe using a simple (8 1 6) x/y/z partition. The goal is to
+reduce dynamic-AMR load imbalance while preserving the accepted W/D/L result.

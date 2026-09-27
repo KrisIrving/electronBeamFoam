@@ -97,3 +97,11 @@ First completed 3 mm quantitative reference:
 - parallel cell imbalance reached 3.94 max/mean;
 - next gate is performance-safe load balancing plus source-shape/mesh
   sensitivities before launching the full six-condition campaign.
+
+
+Immediate next gate after the completed 3 mm baseline:
+1. 0.5 mm decomposition A/B: current scotch baseline vs simpleXZ (8 x 1 x 6);
+2. if promising, confirm on a 1 mm moving-track run;
+3. only then promote a decomposition strategy for the six-condition campaign;
+4. follow with depth mesh sensitivity and a small beam-radius/penetration
+   source-shape sensitivity matrix.

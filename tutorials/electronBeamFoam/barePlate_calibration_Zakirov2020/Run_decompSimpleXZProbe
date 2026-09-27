@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+# 0.5 mm decomposition probe against the accepted scotch numerical baseline.
+# Physics/numerics are unchanged; only the initial 48-rank partition changes.
+EPSILON_TOLERANCE=1e-3 \
+MESH_PROFILE=gradedYSmooth \
+PRESSURE_PROFILE=pcg \
+PIMPLE_PROFILE=pCorr2 \
+DECOMP_PROFILE=simpleXZ \
+NPROCS=48 \
+X_START=-0.00025 \
+X_END=0.00025 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

@@ -1,0 +1,25 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| electronBeamFoam calibration: geometry-aware 48-rank decomposition          |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    object          decomposeParDict;
+}
+
+numberOfSubdomains 48;
+
+// Split only in the surface plane. Every rank spans the complete graded-y
+// direction so the initially flat metal/vacuum interface is distributed
+// evenly across ranks. 176 x-cells divide exactly by 8 and 60 z-cells by 6.
+method          simple;
+
+simpleCoeffs
+{
+    n           (8 1 6);
+    delta       0.001;
+}
+
+// ************************************************************************* //

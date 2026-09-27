@@ -598,3 +598,38 @@ A valid recovery reports 48 processor directories, one common latest written
 time, and PASS. `Resume_fullReference` preserves `processor*`,
 `postProcessing` and all accepted diagnostics; it does not run blockMesh,
 setFields or decomposePar again.
+
+
+## Decomposition probe after the first 3 mm reference
+
+The completed 3 mm baseline reached a max/mean local-cell imbalance of 3.944.
+Before launching additional full-length calibration conditions, test a
+geometry-aware 48-rank decomposition that spreads the metal/vacuum surface
+uniformly across all ranks:
+
+```text
+method simple;
+n (8 1 6);
+```
+
+The y direction is intentionally not partitioned, so every rank spans the full
+graded-y thickness and receives a comparable portion of the initially flat
+interface. Both 176 x-cells / 8 and 60 z-cells / 6 divide exactly.
+
+Run the 0.5 mm gate:
+
+```bash
+./Run_decompSimpleXZProbe
+```
+
+Then:
+
+```bash
+./SummarizeRun
+./CompareDecomposition.py | tee decomposition-comparison.txt
+```
+
+This is a strict numerical/performance A/B. Physics and solver settings remain
+at the accepted baseline. If simpleXZ materially reduces imbalance and wall
+time without changing W/D/L, validate it on 1 mm before promoting it to the
+full calibration campaign.
