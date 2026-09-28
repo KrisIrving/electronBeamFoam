@@ -139,13 +139,27 @@ echo "  PIMPLE profile = pCorr2" >> log.generateTrack
 echo "  decomp profile = simpleXZ -> checkpoint Scotch redistribution" >> log.generateTrack
 
 FULL_END="$(foamDictionary system/controlDict -entry endTime -value)"
-CHECKPOINT="$(python3 - "$FULL_END" <<'PY'
+WRITE_INTERVAL="$(foamDictionary system/controlDict -entry writeInterval -value)"
+
+# The smoke checkpoint is the first normal write of this 0.5 mm case.  Do not
+# derive it as endTime/2: generateCalibrationTrack.py writes dictionary scalars
+# with finite decimal precision, and halving the rounded endTime can differ
+# slightly from the independently rounded writeInterval.
+CHECKPOINT="$WRITE_INTERVAL"
+
+python3 - "$FULL_END" "$CHECKPOINT" <<'PY'
 import sys
-print(f"{0.5*float(sys.argv[1]):.12g}")
+end_time = float(sys.argv[1])
+checkpoint = float(sys.argv[2])
+if not (0.0 < checkpoint < end_time):
+    raise SystemExit(
+        f"Invalid redistribution checkpoint {checkpoint:.12g} "
+        f"for endTime {end_time:.12g}"
+    )
 PY
-)"
 
 echo "Full endTime = $FULL_END"
+echo "Normal write interval = $WRITE_INTERVAL"
 echo "Redistribution checkpoint = $CHECKPOINT"
 
 # Clean only transient case output. Accepted results are already committed in
@@ -223,10 +237,19 @@ PY
 python3 - "$LATEST" "$CHECKPOINT" <<'PY'
 import sys
 a=float(sys.argv[1]); b=float(sys.argv[2])
-tol=max(1e-12, 1e-7*abs(b))
+# OpenFOAM time-directory names and dictionary scalars can be rounded
+# independently.  Accept only a tiny representation-level discrepancy: the
+# tolerance remains far below a normal CFD time step in this benchmark.
+tol=max(1e-10, 1e-5*abs(b))
 if abs(a-b)>tol:
-    raise SystemExit(f"Latest common time {a:.12g} != checkpoint {b:.12g}")
-print(f"Verified common checkpoint: {a:.12g} s")
+    raise SystemExit(
+        f"Latest common time {a:.12g} != checkpoint {b:.12g} "
+        f"(difference={abs(a-b):.3g}, tolerance={tol:.3g})"
+    )
+print(
+    f"Verified common checkpoint: {a:.12g} s "
+    f"(requested {b:.12g} s)"
+)
 PY
 
 check_checkpoint_files()
