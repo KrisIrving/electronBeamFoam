@@ -40,7 +40,7 @@ write_smoke_state()
     {
         echo "stage=$CURRENT_STAGE"
         echo "timestamp=$(date -Is)"
-        echo "worker_pid=$"
+        echo "worker_pid=${BASHPID}"
     } > "$STATE_FILE"
 }
 
