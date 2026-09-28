@@ -134,7 +134,12 @@ if [ -f redistribution-smoke-comparison.txt ]; then
 fi
 
 if [ -f log.Allrun.redistributionSmoke ]; then
-    if ! grep -q '^stage=complete
+    if ! grep -qx "stage=complete" redistribution-smoke-state.txt 2>/dev/null; then
+        echo '  latest workflow messages:'
+        tail -20 log.Allrun.redistributionSmoke | sed 's/^/    /'
+    fi
+fi
+
 echo 'Latest melt-pool:'
 if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
     tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv | \
