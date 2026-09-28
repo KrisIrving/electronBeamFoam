@@ -128,3 +128,15 @@ Immediate next gate after the completed 3 mm baseline:
 - next static-layout gate: simple (4 1 12) on 0.5 mm;
 - if static layouts still show strong track-length growth, move to checkpoint
   redistribution / dynamic load balancing instead of further static tuning.
+
+
+4x1x12 static-layout gate:
+- W/D/L unchanged; fusion volume +0.204%;
+- imbalance improved 1.683 -> 1.401;
+- final wall/step worsened ~1.5%;
+- final-interval wall worsened ~24%;
+- ClockTime worsened 4260 -> 5672 s (+33%);
+- do not advance 4x1x12 to 1 mm;
+- stop static-layout search for now;
+- next gate: checkpoint redistribution / dynamic rebalancing using
+  redistributePar on a controlled 1 mm track.

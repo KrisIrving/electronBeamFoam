@@ -1,0 +1,73 @@
+{
+  "source": "0.5 mm simpleXZ4x12 decomposition A/B",
+  "date": "2026-09-28",
+  "reference": "validation/Zakirov2020_decomp_simpleXZ_0p5mm.json",
+  "probe": {
+    "decomposition": "simple",
+    "n": [
+      4,
+      1,
+      12
+    ],
+    "ranks": 48,
+    "track_length_m": 0.0005,
+    "preheat_K": 296,
+    "power_W": 900,
+    "scan_speed_m_s": 3,
+    "absorptivity": 0.85,
+    "beam_radius_m": 0.00025,
+    "penetration_depth_m": 0.0000189,
+    "fusionZone": {
+      "length_m": 0.000685187253281,
+      "width_m": 0.000435187253281,
+      "depth_m": 0.0000609995065513,
+      "volume_m3": 5.82405288266e-12,
+      "peakTmax_K": 3367.06624271
+    },
+    "final_interval": {
+      "steps": 3264,
+      "pressure_correctors": 6528,
+      "thermal_correctors": 12180,
+      "thermal_cap_hits": 1,
+      "mean_deltaT_s": 2.553104575e-8,
+      "global_cells": 1920924,
+      "local_cells_min": 37620,
+      "local_cells_max": 56051,
+      "cell_imbalance_max_over_mean": 1.400600961,
+      "heaviest_rank": 18,
+      "wall_total_s": 3695.408949,
+      "pressure_s": 1229.345933,
+      "thermal_phase_s": 669.9966684
+    },
+    "continuity": {
+      "samples": 10870,
+      "max_abs_local": 7.230762441e-7,
+      "max_abs_global": 5.129139266e-10,
+      "final_cumulative": 4.974454551e-9,
+      "max_abs_cumulative": 5.145664634e-9
+    },
+    "clock_time_s": 5672,
+    "run_end": "End"
+  },
+  "comparison_vs_8x1x6": {
+    "width_delta_percent": 0,
+    "depth_delta_percent": 0,
+    "length_delta_percent": 0,
+    "volume_delta_percent": 0.204,
+    "imbalance_reference": 1.682579747,
+    "imbalance_probe": 1.400600961,
+    "imbalance_ratio": 0.832,
+    "final_interval_wall_per_step_reference_s": 1.115268,
+    "final_interval_wall_per_step_probe_s": 1.132172,
+    "final_interval_wall_per_step_delta_percent": 1.516,
+    "final_interval_wall_reference_s": 2978.881549,
+    "final_interval_wall_probe_s": 3695.408949,
+    "final_interval_wall_delta_percent": 24.053,
+    "pressure_wall_delta_percent": 16.138,
+    "thermal_wall_delta_percent": 12.899,
+    "clock_reference_s": 4260,
+    "clock_probe_s": 5672,
+    "clock_delta_percent": 33.146
+  },
+  "decision": "reject as next campaign layout: balance improved, but actual runtime regressed materially and per-step cost did not improve"
+}

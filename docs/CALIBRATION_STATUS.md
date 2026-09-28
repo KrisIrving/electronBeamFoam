@@ -212,3 +212,20 @@ Therefore 8x1x6 remains a useful benchmark but is not promoted to the final
 multi-condition campaign default. The next low-cost static-layout test is
 `simple (4 1 12)`, intended to distribute the narrow refined track across
 more transverse partitions.
+
+
+## 4x1x12 gate — rejected on runtime
+
+The 0.5 mm `simple (4 1 12)` layout reduced final max/mean cell imbalance
+from 1.683 to 1.401 while preserving W/D/L. However, final wall/step was ~1.5%
+worse, final-interval wall time ~24% worse, and total ClockTime ~33% worse than
+the 8x1x6 benchmark.
+
+This is strong evidence that cell-count balance alone is not sufficient. The
+project will not continue enumerating static surface-plane layouts at this
+stage.
+
+The active performance gate is now checkpoint redistribution / dynamic
+rebalancing: redistribute an evolved decomposed dynamic mesh and all fields at
+a normal checkpoint, verify it, then resume and compare with the unrebalanced
+1 mm 8x1x6 reference.

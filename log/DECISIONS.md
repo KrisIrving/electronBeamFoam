@@ -23,6 +23,7 @@ Status values:
 | Restart full failed track from zero | REJECTED policy | Preserve expensive valid common checkpoints and resume. |
 | Scotch decomposition for long calibration campaign | UNDER REVIEW | Completed run but dynamic-AMR imbalance reached ~3.94 max/mean. |
 | `simpleXZ (8 1 6)` decomposition | REJECTED as final campaign default | Physics passed and x=0 W/D matched the 3 mm baseline, but imbalance regrew 1.683 -> 2.625 by 1 mm. Retained as benchmark. |
-| `simpleXZ (4 1 12)` decomposition | ACTIVE | Next 0.5 mm static-layout gate; hypothesis is to distribute the narrow refined track across more z partitions. |
+| `simpleXZ (4 1 12)` decomposition | REJECTED | 0.5 mm W/D/L preserved and imbalance improved to 1.401, but ClockTime worsened 33% and wall/step worsened ~1.5%. |
+| Checkpoint redistribution / dynamic rebalancing | ACTIVE | Static 8x1x6 is fast but imbalance grows with track length; 4x1x12 lowers imbalance but is slower. Next gate is controlled redistributePar + resume. |
 | Fit eta/rb/penetration simultaneously to one W/D pair | REJECTED methodology | Non-identifiable / confounds source effects. |
 | Tabulated Monte-Carlo deposition | DEFERRED | Architecture reserved; table reader/physics database not implemented yet. |
