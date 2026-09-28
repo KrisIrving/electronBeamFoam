@@ -182,3 +182,19 @@ Redistribution-smoke first local execution observation:
 - persistent workflow-stage/failure markers and Status reporting were added
   before the next rerun so the exact failing operation can be identified
   without manually inspecting many logs.
+
+
+Redistribution-smoke interruption root cause and workflow fix:
+- the first local smoke run did not reach redistributePar; Stage 1 itself
+  completed normally at the expected first normal write, 8.33333e-05 s;
+- the workflow derived its checkpoint from half of the rounded controlDict
+  endTime (0.000166667 / 2 = 8.33335e-05 s), while the independently rounded
+  normal writeInterval produced the actual 8.33333e-05 s checkpoint;
+- the exact-checkpoint guard therefore stopped the workflow before the
+  pre-redistribution file audit and before redistributePar;
+- the smoke workflow now uses the generated normal writeInterval directly and
+  allows only a small representation-level time-name tolerance;
+- Status duplicate-tail syntax damage and the smoke-state worker PID marker
+  were also corrected;
+- this event is a harness bug only and provides no evidence for or against
+  redistribution fidelity.
