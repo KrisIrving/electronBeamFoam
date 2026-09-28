@@ -197,3 +197,18 @@ improved total per-step cost by ~1.63x, so the benefit is not only a timestep
 trajectory effect.
 
 Promotion is intentionally withheld until a 1 mm moving-track confirmation.
+
+
+## simpleXZ 1 mm confirmation — not promoted
+
+The 1 mm `simpleXZ (8 1 6)` run reached End and reproduced the completed
+3 mm central x=0 fusion-zone section exactly at reported resolution:
+W=435.187 um, D=67.250 um.
+
+However, load imbalance grew from 1.683 at 0.5 mm to 2.625 at 1 mm. The final
+1 mm local cell range was 37,620 to 114,431 cells/rank.
+
+Therefore 8x1x6 remains a useful benchmark but is not promoted to the final
+multi-condition campaign default. The next low-cost static-layout test is
+`simple (4 1 12)`, intended to distribute the narrow refined track across
+more transverse partitions.

@@ -117,3 +117,14 @@ Immediate next gate after the completed 3 mm baseline:
 - final interval used 25.6% fewer time steps, but step-normalized wall cost
   still improved ~1.63x;
 - next gate: 1 mm simpleXZ confirmation before campaign promotion.
+
+
+1 mm simpleXZ (8 1 6) confirmation:
+- solver reached End;
+- central x=0 W/D = 435.187 / 67.250 um, identical to completed 3 mm baseline;
+- continuity and beam power accounting remained acceptable;
+- max/mean cell imbalance grew 1.683 -> 2.625 from 0.5 to 1.0 mm;
+- 8x1x6 is therefore not promoted as the final campaign decomposition;
+- next static-layout gate: simple (4 1 12) on 0.5 mm;
+- if static layouts still show strong track-length growth, move to checkpoint
+  redistribution / dynamic load balancing instead of further static tuning.

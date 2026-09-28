@@ -1,0 +1,26 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| electronBeamFoam calibration: transverse-heavy 48-rank decomposition         |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    object          decomposeParDict;
+}
+
+numberOfSubdomains 48;
+
+// Every rank spans graded-y. Relative to 8x1x6, use more transverse z
+// partitions so the narrow moving refined band can occupy more ranks.
+method          simple;
+
+simpleCoeffs
+{
+    n           (4 1 12);
+    delta       0.001;
+}
+
+// 176/4 = 44 x-cells, 60/12 = 5 z-cells:
+// 44 * 66 * 5 = 14520 base cells/rank exactly.
+// ************************************************************************* //

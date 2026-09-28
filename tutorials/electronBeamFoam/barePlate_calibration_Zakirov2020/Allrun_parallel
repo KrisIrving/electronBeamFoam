@@ -50,16 +50,16 @@ case "$PIMPLE_PROFILE" in
 esac
 
 case "$DECOMP_PROFILE" in
-    scotch|simpleXZ) ;;
+    scotch|simpleXZ|simpleXZ4x12) ;;
     *)
         echo "ERROR: unknown DECOMP_PROFILE '$DECOMP_PROFILE'." >&2
-        echo "Valid values: scotch, simpleXZ" >&2
+        echo "Valid values: scotch, simpleXZ, simpleXZ4x12" >&2
         exit 1
         ;;
 esac
 
-if [ "$DECOMP_PROFILE" = "simpleXZ" ] && [ "$NPROCS" -ne 48 ]; then
-    echo "ERROR: DECOMP_PROFILE=simpleXZ is defined for NPROCS=48." >&2
+if [[ "$DECOMP_PROFILE" = "simpleXZ" || "$DECOMP_PROFILE" = "simpleXZ4x12" ]] && [ "$NPROCS" -ne 48 ]; then
+    echo "ERROR: simpleXZ decomposition profiles are defined for NPROCS=48." >&2
     exit 1
 fi
 
@@ -151,6 +151,9 @@ case "$DECOMP_PROFILE" in
         ;;
     simpleXZ)
         cp system/decomposeParDict.simpleXZ system/decomposeParDict
+        ;;
+    simpleXZ4x12)
+        cp system/decomposeParDict.simpleXZ4x12 system/decomposeParDict
         ;;
 esac
 

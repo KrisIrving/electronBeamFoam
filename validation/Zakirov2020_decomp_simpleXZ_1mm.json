@@ -1,0 +1,77 @@
+{
+  "source": "1 mm simpleXZ (8 1 6) decomposition confirmation",
+  "date": "2026-09-28",
+  "status": "completed",
+  "probe": {
+    "decomposition": "simple",
+    "n": [
+      8,
+      1,
+      6
+    ],
+    "ranks": 48,
+    "track_length_m": 0.001,
+    "scan_time_s": 0.000333333333,
+    "preheat_K": 296,
+    "power_W": 900,
+    "scan_speed_m_s": 3,
+    "absorptivity": 0.85,
+    "beam_radius_m": 0.00025,
+    "penetration_depth_m": 0.0000189,
+    "decomp_profile": "simpleXZ",
+    "final_write_time_s": 0.0003,
+    "final_global_fusion_zone": {
+      "length_m": 0.001091437253,
+      "width_m": 0.0004476872533,
+      "depth_m": 0.00006724950655,
+      "volume_m3": 1.17503334006e-11,
+      "peakT_K": 3432.9529129
+    },
+    "central_section": {
+      "station_m": 0,
+      "cells": 2139,
+      "width_m": 0.000435187253281,
+      "depth_m": 0.0000672495065506,
+      "peakT_K": 3359.12421718
+    },
+    "final_profile": {
+      "steps": 3397,
+      "pressure_correctors": 6794,
+      "thermal_correctors": 11383,
+      "thermal_cap_hits": 0,
+      "mean_deltaT_s": 2.943773918e-8,
+      "global_cells": 2092277,
+      "local_cells_min": 37620,
+      "local_cells_max": 114431,
+      "cell_imbalance_max_over_mean": 2.625220274,
+      "heaviest_rank": 27,
+      "wall_total_s": 5810.488876,
+      "pressure_s": 2173.414102,
+      "thermal_phase_s": 1060.560724
+    },
+    "continuity": {
+      "samples": 30652,
+      "max_abs_local": 6.748402255e-7,
+      "max_abs_global": 1.303234084e-9,
+      "final_cumulative": 1.641024809e-8,
+      "max_abs_cumulative": 1.649134745e-8
+    },
+    "clock_time_s": 24059,
+    "run_end": "End"
+  },
+  "progression": {
+    "simpleXZ_0p5mm_final_imbalance": 1.682579747,
+    "simpleXZ_1p0mm_final_imbalance": 2.625220274,
+    "imbalance_growth_factor": 1.560271,
+    "completed_3mm_scotch_final_imbalance": 3.944019959,
+    "central_section_delta_vs_3mm_baseline": {
+      "width_um": 0,
+      "depth_um": 0
+    }
+  },
+  "caveats": [
+    "The compact Status output contained OpenMPI TCP connection-reset signatures even though the solver reached End; their exact location in the raw solver log was not supplied.",
+    "The final section diagnostics are from the last normal write at 0.0003 s, while the solver ended at approximately 0.000333335 s."
+  ],
+  "decision": "physics/robustness confirmation passed, but 8x1x6 is not promoted as final campaign decomposition because imbalance regrew to 2.625 by 1 mm"
+}

@@ -19,6 +19,7 @@ This ledger is intentionally compact. Detailed accepted values live in
 | Full-reference recovery | checkpoint resume after MPI peer reset | 0.3 -> 1.0 ms | completed without restart from zero | ACCEPT recovery workflow |
 | Long-track MPI diagnosis | dynamic AMR + Scotch | 3 mm | final max/mean cell imbalance 3.944 | PERFORMANCE ISSUE |
 | Decomposition A/B | Scotch -> simpleXZ (8 1 6) | 0.5 mm | W/D/L unchanged; V -0.237%; ClockTime 2.095x faster; imbalance 1.683 | PASS -> 1 mm |
+| Decomposition confirmation | simpleXZ (8 1 6) | 1.0 mm | x=0 W/D exactly matches 3 mm baseline; imbalance grows to 2.625 | DO NOT PROMOTE; test 4x1x12 |
 
 ## Evidence paths
 

@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+# 0.5 mm controlled A/B for simpleXZ4x12 against the accepted 8x1x6 probe.
+PREHEAT_K=296 \
+BEAM_POWER=900 \
+SCAN_SPEED=3.0 \
+X_START=-0.00025 \
+X_END=0.00025 \
+ABSORPTIVITY=0.85 \
+BEAM_RADIUS=250e-6 \
+PENETRATION_DEPTH=18.9e-6 \
+EPSILON_TOLERANCE=1e-3 \
+MAX_TEMP_CORRECTOR=20 \
+MESH_PROFILE=gradedYSmooth \
+PRESSURE_PROFILE=pcg \
+PIMPLE_PROFILE=pCorr2 \
+DECOMP_PROFILE=simpleXZ4x12 \
+NPROCS=48 \
+AUTO_RECONSTRUCT=0 \
+./Run_background

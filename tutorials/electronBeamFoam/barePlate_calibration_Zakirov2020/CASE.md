@@ -666,3 +666,38 @@ Then:
 This run keeps the accepted numerical/physics baseline and uses a 1 mm
 `x=-0.5...+0.5 mm` scan. It is a performance/robustness confirmation, not a
 new experimental calibration point.
+
+
+## 4 x 1 x 12 decomposition candidate
+
+The 1 mm 8x1x6 confirmation preserved the physics but its max/mean imbalance
+grew to 2.625, so that layout is not promoted as the final campaign baseline.
+
+The next static candidate keeps every rank spanning the complete graded-y
+direction and redistributes the 48 surface-plane partitions:
+
+```text
+simple;
+n (4 1 12);
+```
+
+The base mesh remains exactly divisible:
+- 176 / 4 = 44 x-cells per partition;
+- 60 / 12 = 5 z-cells per partition;
+- 44 x 66 x 5 = 14,520 base cells/rank.
+
+Run the 0.5 mm gate:
+
+```bash
+./Run_decompSimpleXZ4x12Probe
+```
+
+Then:
+
+```bash
+./SummarizeRun
+./CompareDecomposition4x12.py | tee decomposition-4x12-comparison.txt
+```
+
+This is still a performance/numerical A/B. If it does not improve both
+imbalance and actual wall cost relative to 8x1x6, do not advance it to 1 mm.
