@@ -1,0 +1,74 @@
+{
+  "source": "0.5 mm checkpoint-redistribution fidelity smoke",
+  "date": "2026-09-28",
+  "status": "passed",
+  "configuration": {
+    "ranks": 48,
+    "initial_decomposition": "simpleXZ 8x1x6",
+    "redistributed_decomposition": "Scotch",
+    "track_length_m": 0.0005,
+    "checkpoint_s": 0.0000833333,
+    "preheat_K": 296,
+    "power_W": 900,
+    "scan_speed_m_s": 3,
+    "absorptivity": 0.85,
+    "beam_radius_m": 0.00025,
+    "penetration_depth_m": 0.0000189
+  },
+  "fidelity": {
+    "baseline": {
+      "width_um": 435.187,
+      "depth_um": 60.9995,
+      "length_um": 685.187,
+      "volume_mm3": 0.0058122
+    },
+    "redistributed": {
+      "width_um": 435.187,
+      "depth_um": 60.9995,
+      "length_um": 685.187,
+      "volume_mm3": 0.00583297
+    },
+    "delta_percent": {
+      "width": 0.0,
+      "depth": 0.0,
+      "length": 0.0,
+      "volume": 0.357
+    },
+    "checkpoint_history_fields": {
+      "everMelted_pre": "48/48",
+      "peakTemperature_pre": "48/48",
+      "hexRef8_pre": "48/48",
+      "everMelted_post": "48/48",
+      "peakTemperature_post": "48/48",
+      "hexRef8_post": "48/48"
+    },
+    "post_restart_amr": {
+      "refined_events": 452,
+      "unrefined_events": 452
+    },
+    "checkMesh": "passed"
+  },
+  "balance": {
+    "midpoint_pre_max_over_mean": 1.303625793,
+    "post_redistribute_min_cells": 38026,
+    "post_redistribute_max_cells": 38794,
+    "post_redistribute_max_over_mean": 1.009983,
+    "post_redistribute_max_over_min": 1.020197,
+    "final_max_over_mean": 1.540852529
+  },
+  "timing": {
+    "stage1_solver_wall_s": 1264,
+    "redistributePar_wall_s": 15,
+    "checkMesh_wall_s": 1,
+    "stage2_solver_wall_s": 4773,
+    "segmented_solver_wall_s": 6037,
+    "workflow_wall_s": 6053
+  },
+  "beam": {
+    "beamlets_hit": 60,
+    "beamlets_total": 60,
+    "hit_power_fraction": 1.0,
+    "final_power_error_W": -6.593836588e-12
+  },
+  "decision": "fidelity gate passed; advance to controlled 1 mm performance comparison, but do not infer a speedup from the 0.5 mm smoke because its workflow was slower than the accepted uninterrupted 0.5 mm simpleXZ run"
+}
