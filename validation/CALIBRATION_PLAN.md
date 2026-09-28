@@ -140,3 +140,18 @@ Immediate next gate after the completed 3 mm baseline:
 - stop static-layout search for now;
 - next gate: checkpoint redistribution / dynamic rebalancing using
   redistributePar on a controlled 1 mm track.
+
+
+0.5 mm simpleXZ (4 1 12) gate:
+- W/D/L unchanged; fusion volume +0.204%;
+- max/mean cell imbalance improved 1.683 -> 1.401;
+- final-interval steps increased 22.2%;
+- wall/step worsened ~1.5%;
+- ClockTime worsened 4260 -> 5672 s (+33.1%);
+- candidate rejected and not advanced to 1 mm.
+
+Static decomposition search is paused. The next performance gate is a short
+checkpoint-redistribution workflow using OpenFOAM redistributePar on the
+existing decomposed dynamic mesh and fields. The smoke test must verify
+dynamic-refinement restart state, cumulative fields and physical invariance
+before a 1 mm performance comparison.

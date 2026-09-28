@@ -229,3 +229,16 @@ The active performance gate is now checkpoint redistribution / dynamic
 rebalancing: redistribute an evolved decomposed dynamic mesh and all fields at
 a normal checkpoint, verify it, then resume and compare with the unrebalanced
 1 mm 8x1x6 reference.
+
+
+## simpleXZ 4x1x12 short gate — rejected
+
+The transverse-heavy 4x1x12 layout improved final 0.5 mm max/mean cell
+imbalance from 1.683 to 1.401 while preserving W/D/L. It did not improve
+performance: wall/step was ~1.5% worse, the run took 22.2% more final-interval
+steps, and total ClockTime increased 33.1% to 5672 s.
+
+This establishes a static-layout tradeoff rather than a clear campaign
+solution. Static partition enumeration is paused. The next performance task is
+a controlled checkpoint redistribution smoke test, after which a successful
+workflow can be evaluated on a 1 mm moving track.

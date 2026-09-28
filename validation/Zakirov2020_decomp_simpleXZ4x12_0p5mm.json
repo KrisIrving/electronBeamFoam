@@ -1,6 +1,7 @@
 {
   "source": "0.5 mm simpleXZ4x12 decomposition A/B",
   "date": "2026-09-28",
+  "status": "completed",
   "reference": "validation/Zakirov2020_decomp_simpleXZ_0p5mm.json",
   "probe": {
     "decomposition": "simple",
@@ -18,11 +19,11 @@
     "beam_radius_m": 0.00025,
     "penetration_depth_m": 0.0000189,
     "fusionZone": {
-      "length_m": 0.000685187253281,
-      "width_m": 0.000435187253281,
-      "depth_m": 0.0000609995065513,
-      "volume_m3": 5.82405288266e-12,
-      "peakTmax_K": 3367.06624271
+      "length_m": 0.0006851872533,
+      "width_m": 0.0004351872533,
+      "depth_m": 0.00006099950655,
+      "volume_m3": 5.824052883e-12,
+      "peakTmax_K": 3367.066243
     },
     "final_interval": {
       "steps": 3264,
@@ -50,24 +51,23 @@
     "run_end": "End"
   },
   "comparison_vs_8x1x6": {
-    "width_delta_percent": 0,
-    "depth_delta_percent": 0,
-    "length_delta_percent": 0,
+    "W_delta_percent": 0,
+    "D_delta_percent": 0,
+    "L_delta_percent": 0,
     "volume_delta_percent": 0.204,
     "imbalance_reference": 1.682579747,
     "imbalance_probe": 1.400600961,
-    "imbalance_ratio": 0.832,
-    "final_interval_wall_per_step_reference_s": 1.115268,
-    "final_interval_wall_per_step_probe_s": 1.132172,
-    "final_interval_wall_per_step_delta_percent": 1.516,
-    "final_interval_wall_reference_s": 2978.881549,
-    "final_interval_wall_probe_s": 3695.408949,
-    "final_interval_wall_delta_percent": 24.053,
-    "pressure_wall_delta_percent": 16.138,
-    "thermal_wall_delta_percent": 12.899,
-    "clock_reference_s": 4260,
-    "clock_probe_s": 5672,
-    "clock_delta_percent": 33.146
+    "imbalance_change_percent": -16.76,
+    "final_interval_steps_reference": 2671,
+    "final_interval_steps_probe": 3264,
+    "final_interval_steps_change_percent": 22.2,
+    "wall_per_step_reference_s": 1.115268,
+    "wall_per_step_probe_s": 1.132172,
+    "wall_per_step_change_percent": 1.52,
+    "final_interval_wall_change_percent": 24.05,
+    "pressure_wall_change_percent": 16.14,
+    "thermal_wall_change_percent": 12.9,
+    "clock_time_change_percent": 33.15
   },
-  "decision": "reject as next campaign layout: balance improved, but actual runtime regressed materially and per-step cost did not improve"
+  "decision": "reject as next-stage candidate: lower cell imbalance but materially worse total runtime and slightly worse per-step cost"
 }
