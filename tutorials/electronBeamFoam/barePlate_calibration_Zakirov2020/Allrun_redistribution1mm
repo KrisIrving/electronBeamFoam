@@ -1,0 +1,383 @@
+#!/bin/bash
+set -euo pipefail
+
+# Controlled 1 mm checkpoint-redistribution performance gate.
+#
+# Reference:
+#   validation/Zakirov2020_decomp_simpleXZ_1mm.json
+#   uninterrupted simpleXZ (8 1 6), 48 ranks, writeInterval=1e-4 s.
+#
+# Candidate:
+#   the same 1 mm physical trajectory and write cadence;
+#   run simpleXZ through the second normal write at t=2e-4 s;
+#   redistribute the already refined checkpoint to 48-rank Scotch;
+#   resume to the original endTime.
+#
+# The checkpoint is intentionally a normal reference write.  This preserves
+# the 1e-4 s write schedule and leaves the final quantitative comparison at
+# t=3e-4 s, exactly matching the accepted 1 mm baseline.
+
+exec 9>.electronBeamFoam.run.lock
+if ! flock -n 9; then
+    echo "ERROR: another case operation owns the run lock." >&2
+    exit 2
+fi
+
+NPROCS=48
+export OMP_NUM_THREADS=1
+MPI_ARGS=(--bind-to core --map-by ppr:24:socket)
+
+STATE_FILE=redistribution-1mm-state.txt
+FAILURE_FILE=redistribution-1mm-failure.txt
+CURRENT_STAGE=preflight
+
+write_state()
+{
+    CURRENT_STAGE="$1"
+    {
+        echo "stage=$CURRENT_STAGE"
+        echo "timestamp=$(date -Is)"
+        echo "worker_pid=${BASHPID}"
+    } > "$STATE_FILE"
+}
+
+rm -f "$FAILURE_FILE"
+write_state preflight
+
+for exe in electronBeamFoam redistributePar blockMesh setFields decomposePar checkMesh foamDictionary; do
+    command -v "$exe" >/dev/null 2>&1 || {
+        echo "ERROR: required executable '$exe' not found." >&2
+        exit 1
+    }
+done
+
+SOLVER_EXE="$(command -v electronBeamFoam)"
+REPO_ROOT="$(cd ../../.. && pwd)"
+if find "$REPO_ROOT/applications/solvers/electronBeamFoam" \
+        "$REPO_ROOT/src/electronBeamHeatSource" \
+        -type f \( -name '*.C' -o -name '*.H' -o -name 'files' -o -name 'options' \) \
+        -newer "$SOLVER_EXE" -print -quit | grep -q .; then
+    echo "ERROR: electronBeamFoam executable is stale. Rebuild first." >&2
+    exit 1
+fi
+
+RUN_INPUT_BACKUP="$(mktemp -d)"
+for f in \
+    system/controlDict \
+    constant/timeVsBeamPosition \
+    constant/timeVsBeamPower \
+    constant/ElectronBeamProperties \
+    constant/transportProperties \
+    initial/T \
+    system/fvSolution \
+    system/blockMeshDict \
+    system/decomposeParDict
+do
+    cp "$f" "$RUN_INPUT_BACKUP/$(basename "$f").$(echo "$f" | tr '/' '_')"
+done
+
+restore_inputs()
+{
+    cp "$RUN_INPUT_BACKUP/controlDict.system_controlDict" system/controlDict
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPosition.constant_timeVsBeamPosition" constant/timeVsBeamPosition
+    cp "$RUN_INPUT_BACKUP/timeVsBeamPower.constant_timeVsBeamPower" constant/timeVsBeamPower
+    cp "$RUN_INPUT_BACKUP/ElectronBeamProperties.constant_ElectronBeamProperties" constant/ElectronBeamProperties
+    cp "$RUN_INPUT_BACKUP/transportProperties.constant_transportProperties" constant/transportProperties
+    cp "$RUN_INPUT_BACKUP/T.initial_T" initial/T
+    cp "$RUN_INPUT_BACKUP/fvSolution.system_fvSolution" system/fvSolution
+    cp "$RUN_INPUT_BACKUP/blockMeshDict.system_blockMeshDict" system/blockMeshDict
+    cp "$RUN_INPUT_BACKUP/decomposeParDict.system_decomposeParDict" system/decomposeParDict
+    rm -rf "$RUN_INPUT_BACKUP"
+}
+
+on_exit()
+{
+    local rc=$?
+    if [ "$rc" -ne 0 ]; then
+        {
+            echo "status=failed"
+            echo "stage=$CURRENT_STAGE"
+            echo "exit_code=$rc"
+            echo "timestamp=$(date -Is)"
+        } > "$FAILURE_FILE"
+    else
+        rm -f "$FAILURE_FILE"
+    fi
+    restore_inputs
+}
+
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+write_state configure_case
+
+cp system/fvSolution.pCorr2 system/fvSolution
+cp system/blockMeshDict.gradedYSmooth system/blockMeshDict
+cp system/decomposeParDict.simpleXZ system/decomposeParDict
+foamDictionary system/decomposeParDict -entry numberOfSubdomains -set "$NPROCS" \
+    > log.setNProcs.redistribution1mm 2>&1
+
+PREHEAT_K=296 \
+BEAM_POWER=900 \
+SCAN_SPEED=3.0 \
+X_START=-0.0005 \
+X_END=0.0005 \
+ABSORPTIVITY=0.85 \
+BEAM_RADIUS=250e-6 \
+PENETRATION_DEPTH=18.9e-6 \
+WRITE_INTERVAL=1e-4 \
+EPSILON_TOLERANCE=1e-3 \
+MAX_TEMP_CORRECTOR=20 \
+python3 generateCalibrationTrack.py > log.generateTrack 2>&1
+
+echo "  mesh profile   = gradedYSmooth" >> log.generateTrack
+echo "  pressure prof  = pcg" >> log.generateTrack
+echo "  PIMPLE profile = pCorr2" >> log.generateTrack
+echo "  decomp profile = simpleXZ -> t=2e-4 s Scotch redistribution" >> log.generateTrack
+
+FULL_END="$(foamDictionary system/controlDict -entry endTime -value)"
+WRITE_INTERVAL="$(foamDictionary system/controlDict -entry writeInterval -value)"
+CHECKPOINT="$(python3 - "$WRITE_INTERVAL" <<'PY'
+import sys
+print(f"{2.0*float(sys.argv[1]):.12g}")
+PY
+)"
+
+python3 - "$FULL_END" "$CHECKPOINT" <<'PY'
+import sys
+end_time=float(sys.argv[1]); checkpoint=float(sys.argv[2])
+if not (0.0 < checkpoint < end_time):
+    raise SystemExit(
+        f"Invalid 1 mm redistribution checkpoint {checkpoint:.12g} "
+        f"for endTime {end_time:.12g}"
+    )
+PY
+
+echo "Full endTime = $FULL_END"
+echo "Write interval = $WRITE_INTERVAL"
+echo "Redistribution checkpoint = $CHECKPOINT"
+
+rm -rf 0 processor* postProcessing redistributionBackup1mm
+rm -f case.foam
+rm -f log.electronBeamFoam log.redistribution1mm.stage1 log.redistribution1mm.stage2
+rm -f log.redistributePar.1mm log.checkMesh.redistributed1mm
+rm -f redistribution-1mm-balance.txt redistribution-1mm-prebalance.txt
+rm -f redistribution-1mm-timing.txt redistribution-1mm-comparison.txt
+rm -f checkpoint-files-1mm-preRedistribute.txt checkpoint-files-1mm-postRedistribute.txt
+foamListTimes -rm -noZero > log.cleanTimes.redistribution1mm 2>&1 || true
+
+cp -r initial 0
+find 0 -name "*.orig" -exec bash -c 'cp "$0" "${0%.orig}"' {} \;
+
+blockMesh > log.blockMesh.redistribution1mm 2>&1
+checkMesh -constant -allGeometry -allTopology > log.checkMesh.initial.redistribution1mm 2>&1
+if grep -q "Failed" log.checkMesh.initial.redistribution1mm; then
+    echo "ERROR: initial checkMesh failed." >&2
+    exit 1
+fi
+setFields > log.setFields.redistribution1mm 2>&1
+decomposePar -force > log.decomposePar.redistribution1mm 2>&1
+
+write_state stage1_solver
+foamDictionary system/controlDict -entry endTime -set "$CHECKPOINT" \
+    > log.setCheckpointEndTime.1mm 2>&1
+
+S1=$SECONDS
+mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel \
+    > log.electronBeamFoam 2>&1
+STAGE1_WALL=$((SECONDS-S1))
+cp log.electronBeamFoam log.redistribution1mm.stage1
+
+grep -q '^End$' log.redistribution1mm.stage1 || {
+    echo "ERROR: 1 mm stage-1 solver did not reach End." >&2
+    exit 1
+}
+
+write_state stage1_checkpoint_audit
+
+LATEST="$(python3 - <<'PY'
+from pathlib import Path
+from collections import Counter
+procs=sorted(
+    [p for p in Path(".").glob("processor*") if p.is_dir() and p.name[9:].isdigit()],
+    key=lambda p:int(p.name[9:])
+)
+if len(procs) != 48:
+    raise SystemExit(f"Expected 48 processor dirs, found {len(procs)}")
+latest=[]
+for p in procs:
+    vals=[]
+    for q in p.iterdir():
+        if q.is_dir():
+            try:
+                vals.append((float(q.name), q.name))
+            except ValueError:
+                pass
+    if not vals:
+        raise SystemExit(f"No numeric time in {p}")
+    latest.append(max(vals)[1])
+counts=Counter(latest)
+if len(counts) != 1:
+    raise SystemExit(f"Latest processor times disagree: {dict(counts)}")
+print(latest[0])
+PY
+)"
+
+python3 - "$LATEST" "$CHECKPOINT" <<'PY'
+import sys
+a=float(sys.argv[1]); b=float(sys.argv[2])
+tol=max(1e-10, 1e-5*abs(b))
+if abs(a-b)>tol:
+    raise SystemExit(
+        f"Latest common time {a:.12g} != checkpoint {b:.12g} "
+        f"(difference={abs(a-b):.3g}, tolerance={tol:.3g})"
+    )
+print(f"Verified common checkpoint: {a:.12g} s (requested {b:.12g} s)")
+PY
+
+{
+    echo "pre-redistribution solver balance"
+    grep 'local cells min/max' log.redistribution1mm.stage1 | tail -1 || true
+    grep 'cell imbalance max/mean' log.redistribution1mm.stage1 | tail -1 || true
+    grep 'heaviest rank' log.redistribution1mm.stage1 | tail -1 || true
+} > redistribution-1mm-prebalance.txt
+
+check_checkpoint_files()
+{
+    local phase="$1"
+    local out="checkpoint-files-1mm-$phase.txt"
+    local fail=0
+    echo "# $phase checkpoint file audit" > "$out"
+
+    for name in everMelted peakTemperature; do
+        count="$(find processor* -path "*/$LATEST/$name" -type f | wc -l)"
+        printf '%s %s/48\n' "$name" "$count" | tee -a "$out"
+        [ "$count" -eq 48 ] || fail=1
+    done
+
+    for name in cellLevel pointLevel level0Edge; do
+        count="$(find processor* -path "*/$LATEST/polyMesh/$name" -type f | wc -l)"
+        printf 'polyMesh/%s %s/48\n' "$name" "$count" | tee -a "$out"
+        [ "$count" -eq 48 ] || fail=1
+    done
+
+    if [ "$fail" -ne 0 ]; then
+        echo "ERROR: required checkpoint data missing during $phase audit." >&2
+        exit 1
+    fi
+}
+
+check_checkpoint_files preRedistribute
+
+write_state checkpoint_backup
+mkdir -p redistributionBackup1mm
+B0=$SECONDS
+tar -cf redistributionBackup1mm/preRedistribute_processorDirs.tar processor*
+BACKUP_WALL=$((SECONDS-B0))
+
+write_state redistribute
+R0=$SECONDS
+mpirun "${MPI_ARGS[@]}" -np "$NPROCS" \
+    redistributePar \
+        -parallel \
+        -latestTime \
+        -overwrite \
+        -decomposeParDict system/decomposeParDict.redistributeScotch \
+    > log.redistributePar.1mm 2>&1
+REDIST_WALL=$((SECONDS-R0))
+
+grep -q 'After distribution' log.redistributePar.1mm || {
+    echo "ERROR: redistributePar log has no 'After distribution' block." >&2
+    exit 1
+}
+
+python3 - <<'PY' > redistribution-1mm-balance.txt
+from pathlib import Path
+import re
+text=Path("log.redistributePar.1mm").read_text(errors="replace")
+tail=text.rsplit("After distribution",1)[-1]
+cells=[int(x) for x in re.findall(r"Number of cells\s*=\s*([0-9]+)",tail)]
+if len(cells) < 48:
+    raise SystemExit(f"Expected >=48 post-distribution cell counts, found {len(cells)}")
+cells=cells[:48]
+mean=sum(cells)/len(cells)
+print("redistributePar post-distribution balance")
+print(f"  ranks      = {len(cells)}")
+print(f"  global     = {sum(cells)}")
+print(f"  min/max    = {min(cells)} / {max(cells)}")
+print(f"  max/mean   = {max(cells)/mean:.6f}")
+print(f"  max/min    = {max(cells)/min(cells):.6f}")
+PY
+
+write_state post_redistribute_audit
+check_checkpoint_files postRedistribute
+
+write_state redistributed_check_mesh
+C0=$SECONDS
+mpirun "${MPI_ARGS[@]}" -np "$NPROCS" checkMesh -parallel -latestTime \
+    > log.checkMesh.redistributed1mm 2>&1
+CHECK_WALL=$((SECONDS-C0))
+if grep -q "Failed" log.checkMesh.redistributed1mm; then
+    echo "ERROR: redistributed 1 mm checkpoint failed checkMesh." >&2
+    exit 1
+fi
+
+write_state stage2_solver
+foamDictionary system/controlDict -entry endTime -set "$FULL_END" \
+    > log.restoreFullEndTime.1mm 2>&1
+
+echo >> log.electronBeamFoam
+echo "=== 1 MM CHECKPOINT REDISTRIBUTED; RESUMING ===" >> log.electronBeamFoam
+
+S2=$SECONDS
+set +e
+mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel 2>&1 \
+    | tee log.redistribution1mm.stage2 >> log.electronBeamFoam
+RC=${PIPESTATUS[0]}
+set -e
+STAGE2_WALL=$((SECONDS-S2))
+if [ "$RC" -ne 0 ]; then
+    echo "ERROR: resumed 1 mm solver exited with status $RC." >&2
+    exit "$RC"
+fi
+
+grep -q '^End$' log.redistribution1mm.stage2 || {
+    echo "ERROR: resumed 1 mm solver did not reach End." >&2
+    exit 1
+}
+
+if ! grep -Eq 'Refined from|Unrefined from' log.redistribution1mm.stage2; then
+    echo "ERROR: no post-redistribution dynamic refinement activity detected." >&2
+    exit 1
+fi
+
+write_state postprocess
+python3 CompareExperiment.py > calibration-comparison.txt 2>&1 || true
+python3 CompareSections.py > section-comparison.txt 2>&1 || true
+python3 CompareExperimentSections.py > section-experiment-comparison.txt 2>&1 || true
+./SummarizeRun
+
+cat > redistribution-1mm-timing.txt <<EOF
+stage1_solver_wall_s=$STAGE1_WALL
+checkpoint_backup_wall_s=$BACKUP_WALL
+redistributePar_wall_s=$REDIST_WALL
+checkMesh_wall_s=$CHECK_WALL
+stage2_solver_wall_s=$STAGE2_WALL
+segmented_solver_wall_s=$((STAGE1_WALL+STAGE2_WALL))
+workflow_wall_s=$((STAGE1_WALL+BACKUP_WALL+REDIST_WALL+CHECK_WALL+STAGE2_WALL))
+EOF
+
+python3 CompareRedistribution1mm.py > redistribution-1mm-comparison.txt
+
+write_state complete
+
+echo "1 mm redistribution performance gate completed."
+echo "Checkpoint: $LATEST s"
+echo "See:"
+echo "  redistribution-1mm-prebalance.txt"
+echo "  redistribution-1mm-balance.txt"
+echo "  redistribution-1mm-timing.txt"
+echo "  redistribution-1mm-comparison.txt"
+echo "Rollback archive retained at:"
+echo "  redistributionBackup1mm/preRedistribute_processorDirs.tar"
