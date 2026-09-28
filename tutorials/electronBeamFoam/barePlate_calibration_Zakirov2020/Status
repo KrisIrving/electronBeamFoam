@@ -152,6 +152,44 @@ if [ -f log.Allrun.redistributionSmoke ]; then
     fi
 fi
 
+echo 'Redistribution 1 mm performance:'
+if [ -f redistribution-1mm-state.txt ]; then
+    sed 's/^/  /' redistribution-1mm-state.txt
+
+    if [ -f redistribution-1mm-failure.txt ]; then
+        echo '  failure:'
+        sed 's/^/    /' redistribution-1mm-failure.txt
+    fi
+
+    if [ -f redistribution-1mm-prebalance.txt ]; then
+        echo '  pre-redistribution balance:'
+        sed 's/^/    /' redistribution-1mm-prebalance.txt
+    fi
+
+    if [ -f redistribution-1mm-balance.txt ]; then
+        echo '  post-redistribution balance:'
+        sed 's/^/    /' redistribution-1mm-balance.txt
+    fi
+
+    if [ -f redistribution-1mm-timing.txt ]; then
+        echo '  workflow timing:'
+        sed 's/^/    /' redistribution-1mm-timing.txt
+    fi
+
+    if [ -f redistribution-1mm-comparison.txt ]; then
+        echo '  performance comparison:'
+        sed 's/^/    /' redistribution-1mm-comparison.txt
+    fi
+
+    if [ -f log.Allrun.redistribution1mm ] \
+       && ! grep -qx "stage=complete" redistribution-1mm-state.txt 2>/dev/null; then
+        echo '  latest workflow messages:'
+        tail -20 log.Allrun.redistribution1mm | sed 's/^/    /'
+    fi
+else
+    echo '  not started'
+fi
+
 echo 'Latest melt-pool:'
 if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
     tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv | \
