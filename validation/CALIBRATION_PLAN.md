@@ -198,3 +198,22 @@ Redistribution-smoke interruption root cause and workflow fix:
   were also corrected;
 - this event is a harness bug only and provides no evidence for or against
   redistribution fidelity.
+
+
+Checkpoint-redistribution fidelity smoke result:
+- PASS on the controlled 0.5 mm case;
+- final W/D/L exactly reproduced the accepted uninterrupted simpleXZ
+  baseline, while fusion-zone volume changed by +0.357%;
+- everMelted, peakTemperature and all audited hexRef8 refinement-state files
+  survived redistribution on all 48 ranks;
+- parallel checkMesh passed and the resumed solver subsequently recorded
+  452 refine and 452 unrefine events;
+- midpoint max/mean imbalance 1.304 was reset to 1.010 by Scotch, then regrew
+  to 1.541 by the final write;
+- the smoke workflow took 6053 s versus about 4260 s for the accepted
+  uninterrupted 0.5 mm simpleXZ run, so improved cell balance alone is not
+  evidence of a performance gain;
+- next gate: controlled 1 mm performance comparison.  Preserve the accepted
+  1e-4 s write cadence, redistribute at the second normal write (2e-4 s),
+  and compare the final 3e-4 s fusion-zone output plus full workflow wall time
+  against validation/Zakirov2020_decomp_simpleXZ_1mm.json (24059 s baseline).
