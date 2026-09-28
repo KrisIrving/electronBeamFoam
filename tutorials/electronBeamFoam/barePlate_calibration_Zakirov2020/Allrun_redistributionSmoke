@@ -30,6 +30,23 @@ NPROCS=48
 export OMP_NUM_THREADS=1
 MPI_ARGS=(--bind-to core --map-by ppr:24:socket)
 
+STATE_FILE=redistribution-smoke-state.txt
+FAILURE_FILE=redistribution-smoke-failure.txt
+CURRENT_STAGE=preflight
+
+write_smoke_state()
+{
+    CURRENT_STAGE="$1"
+    {
+        echo "stage=$CURRENT_STAGE"
+        echo "timestamp=$(date -Is)"
+        echo "worker_pid=$"
+    } > "$STATE_FILE"
+}
+
+rm -f "$FAILURE_FILE"
+write_smoke_state preflight
+
 for exe in electronBeamFoam redistributePar blockMesh setFields decomposePar checkMesh foamDictionary; do
     command -v "$exe" >/dev/null 2>&1 || {
         echo "ERROR: required executable '$exe' not found." >&2
@@ -71,7 +88,29 @@ restore_inputs()
     cp "$RUN_INPUT_BACKUP/decomposeParDict" system/decomposeParDict
     rm -rf "$RUN_INPUT_BACKUP"
 }
-trap restore_inputs EXIT INT TERM
+on_exit()
+{
+    local rc=$?
+
+    if [ "$rc" -ne 0 ]; then
+        {
+            echo "status=failed"
+            echo "stage=$CURRENT_STAGE"
+            echo "exit_code=$rc"
+            echo "timestamp=$(date -Is)"
+        } > "$FAILURE_FILE"
+    else
+        rm -f "$FAILURE_FILE"
+    fi
+
+    restore_inputs
+}
+
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+write_smoke_state configure_case
 
 # Accepted numerical baseline.
 cp system/fvSolution.pCorr2 system/fvSolution
@@ -132,6 +171,7 @@ setFields > log.setFields.redistributionSmoke 2>&1
 decomposePar -force > log.decomposePar.redistributionSmoke 2>&1
 
 # ---------- Stage 1 ----------
+write_smoke_state stage1_solver
 foamDictionary system/controlDict -entry endTime -set "$CHECKPOINT" \
     > log.setCheckpointEndTime 2>&1
 
@@ -145,6 +185,8 @@ grep -q '^End$' log.redistribution.stage1 || {
     echo "ERROR: stage-1 solver did not reach End." >&2
     exit 1
 }
+
+write_smoke_state stage1_checkpoint_audit
 
 LATEST="$(python3 - <<'PY'
 from pathlib import Path
@@ -216,12 +258,14 @@ check_checkpoint_files preRedistribute
 # Full rollback copy. redistributePar changes processor directories in place.
 # A plain tar is intentional: it is portable and preserves binary OpenFOAM
 # files exactly. Delete it manually after the smoke test has been accepted.
+write_smoke_state checkpoint_backup
 mkdir -p redistributionBackup
 B0=$SECONDS
 tar -cf redistributionBackup/preRedistribute_processorDirs.tar processor*
 BACKUP_WALL=$((SECONDS-B0))
 
 # ---------- Redistribution ----------
+write_smoke_state redistribute
 R0=$SECONDS
 mpirun "${MPI_ARGS[@]}" -np "$NPROCS" \
     redistributePar \
@@ -259,8 +303,10 @@ print(f"  max/mean   = {max(cells)/mean:.6f}")
 print(f"  max/min    = {max(cells)/min(cells):.6f}")
 PY
 
+write_smoke_state post_redistribute_audit
 check_checkpoint_files postRedistribute
 
+write_smoke_state redistributed_check_mesh
 C0=$SECONDS
 mpirun "${MPI_ARGS[@]}" -np "$NPROCS" checkMesh -parallel -latestTime \
     > log.checkMesh.redistributed 2>&1
@@ -271,6 +317,7 @@ if grep -q "Failed" log.checkMesh.redistributed; then
 fi
 
 # ---------- Stage 2 ----------
+write_smoke_state stage2_solver
 # Restore the original full-track endTime. startFrom latestTime is already the
 # case baseline and the full beam tables have been preserved since generation.
 foamDictionary system/controlDict -entry endTime -set "$FULL_END" \
@@ -301,6 +348,7 @@ if ! grep -Eq 'Refined from|Unrefined from' log.redistribution.stage2; then
     exit 1
 fi
 
+write_smoke_state postprocess
 python3 CompareExperiment.py > calibration-comparison.txt 2>&1 || true
 python3 CompareSections.py > section-comparison.txt 2>&1 || true
 python3 CompareExperimentSections.py > section-experiment-comparison.txt 2>&1 || true
@@ -317,6 +365,8 @@ workflow_wall_s=$((STAGE1_WALL+BACKUP_WALL+REDIST_WALL+CHECK_WALL+STAGE2_WALL))
 EOF
 
 ./CompareRedistributionSmoke.py > redistribution-smoke-comparison.txt
+
+write_smoke_state complete
 
 echo "Redistribution smoke test completed."
 echo "Checkpoint: $LATEST s"
