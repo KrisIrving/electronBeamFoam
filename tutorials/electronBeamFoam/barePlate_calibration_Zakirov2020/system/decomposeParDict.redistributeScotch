@@ -1,0 +1,19 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| electronBeamFoam checkpoint redistribution target                           |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    object          decomposeParDict;
+}
+
+numberOfSubdomains 48;
+
+// IMPORTANT: this Scotch decomposition is applied to the *already refined*
+// checkpoint mesh by redistributePar. It is not the original t=0 Scotch
+// baseline decomposition.
+method          scotch;
+
+// ************************************************************************* //

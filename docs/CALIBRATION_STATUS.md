@@ -242,3 +242,15 @@ This establishes a static-layout tradeoff rather than a clear campaign
 solution. Static partition enumeration is paused. The next performance task is
 a controlled checkpoint redistribution smoke test, after which a successful
 workflow can be evaluated on a 1 mm moving track.
+
+
+## Checkpoint redistribution smoke — ready
+
+Static layout enumeration is closed after 4x1x12 improved cell balance but
+worsened runtime. A safe two-stage 0.5 mm redistribution smoke workflow is now
+available.
+
+The smoke explicitly validates dynamicRefineFvMesh restart data
+(cellLevel/pointLevel/level0Edge), cumulative fusion fields
+(everMelted/peakTemperature), post-redistribution mesh validity and continued
+AMR activity before any performance claim is made.

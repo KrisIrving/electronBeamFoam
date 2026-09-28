@@ -96,3 +96,26 @@ and the physical/numerical outputs remain inside the accepted envelope.
 
 The target is campaign throughput, not the smallest possible cell-count
 imbalance.
+
+
+## Implemented smoke workflow
+
+The first checkpoint-redistribution fidelity gate is now automated in:
+
+```text
+tutorials/electronBeamFoam/barePlate_calibration_Zakirov2020/
+    Run_redistributionSmoke
+    Allrun_redistributionSmoke
+    CompareRedistributionSmoke.py
+    system/decomposeParDict.redistributeScotch
+```
+
+The workflow runs the accepted 0.5 mm trajectory in two solver stages around a
+midpoint redistribution. It backs up all processor directories before
+redistribution, audits cumulative fields and hexRef8 data before and after,
+runs `checkMesh -parallel -latestTime`, requires post-restart AMR activity,
+and compares final fusion geometry against the accepted unsegmented 0.5 mm
+simpleXZ baseline.
+
+This smoke is deliberately not a performance benchmark. The tar backup,
+checkMesh and process restart are included for safety and fidelity evidence.

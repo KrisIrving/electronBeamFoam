@@ -155,3 +155,17 @@ checkpoint-redistribution workflow using OpenFOAM redistributePar on the
 existing decomposed dynamic mesh and fields. The smoke test must verify
 dynamic-refinement restart state, cumulative fields and physical invariance
 before a 1 mm performance comparison.
+
+
+Checkpoint-redistribution fidelity smoke:
+- implemented as a two-stage 0.5 mm run around the normal midpoint write;
+- starts from simpleXZ 8x1x6 and redistributes the refined checkpoint to
+  48-rank Scotch;
+- uses redistributePar -latestTime -overwrite;
+- audits everMelted, peakTemperature and hexRef8 refinement files before/after;
+- preserves a full processor-directory rollback archive;
+- requires post-redistribution checkMesh and new AMR activity after restart;
+- final W/D/L are compared to the accepted unsegmented 0.5 mm baseline.
+
+If fidelity passes, the next gate is a 1 mm performance A/B with one controlled
+redistribution checkpoint.

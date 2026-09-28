@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ -f run.pid ]; then
+    OLD_PID="$(cat run.pid 2>/dev/null || true)"
+    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "ERROR: run.pid points to a live process $OLD_PID." >&2
+        echo "Use ./Status instead of launching another case operation." >&2
+        exit 2
+    fi
+fi
+
+exec 8>.electronBeamFoam.run.lock
+if ! flock -n 8; then
+    echo "ERROR: this case directory is already locked by an active operation." >&2
+    exit 2
+fi
+flock -u 8
+
+nohup ./Allrun_redistributionSmoke > log.Allrun.redistributionSmoke 2>&1 &
+echo $! > run.pid
+echo "Started redistribution smoke worker PID $(cat run.pid)"

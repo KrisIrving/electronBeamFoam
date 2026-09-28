@@ -49,3 +49,5 @@ When reviewed, commit the probe result to `validation/` and update this row
 rather than replacing the historical entry.
 
 | Decomposition A/B | simpleXZ 8x1x6 -> 4x1x12 | 0.5 mm | W/D/L unchanged; imbalance 1.683 -> 1.401 but ClockTime +33.1% | REJECT; pivot to redistribution |
+
+| Checkpoint redistribution smoke | simpleXZ 8x1x6 -> midpoint Scotch redistributePar -> resume | 0.5 mm | workflow implemented; result pending | ACTIVE fidelity gate |

@@ -701,3 +701,37 @@ Then:
 
 This is still a performance/numerical A/B. If it does not improve both
 imbalance and actual wall cost relative to 8x1x6, do not advance it to 1 mm.
+
+
+## Checkpoint redistribution smoke test
+
+After the static 8x1x6 / 4x1x12 decomposition study, the next load-balancing
+gate is redistribution of an already refined dynamic-mesh checkpoint.
+
+Run:
+
+```bash
+./Run_redistributionSmoke
+```
+
+The workflow:
+1. runs the accepted 0.5 mm path with simpleXZ 8x1x6 to the midpoint write;
+2. verifies a common 48-rank checkpoint and required cumulative/refinement data;
+3. archives `processor*` for rollback;
+4. runs 48-rank `redistributePar -latestTime -overwrite` with a Scotch target;
+5. audits redistributed rank balance and runs parallel checkMesh;
+6. resumes electronBeamFoam to the original 0.5 mm end time;
+7. requires dynamic refinement activity after the restart;
+8. compares final W/D/L with the accepted 0.5 mm baseline.
+
+After completion inspect:
+
+```bash
+cat redistribution-balance.txt
+cat redistribution-smoke-timing.txt
+cat redistribution-smoke-comparison.txt
+./SummarizeRun
+```
+
+Do not interpret the smoke workflow wall time as a campaign speed result. It
+includes checkpoint backup, redistributePar, checkMesh and a process restart.
