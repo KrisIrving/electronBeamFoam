@@ -1,6 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
+MODE="${1:-smoke}"
+
+case "$MODE" in
+    smoke)
+        WORKER="./Allrun_redistributionSmoke"
+        LOG="log.Allrun.redistributionSmoke"
+        LABEL="redistribution smoke"
+        ;;
+    1mm|1mm-performance)
+        WORKER="./Allrun_redistribution1mm"
+        LOG="log.Allrun.redistribution1mm"
+        LABEL="1 mm redistribution performance"
+        ;;
+    *)
+        echo "Usage: $0 [smoke|1mm]" >&2
+        exit 2
+        ;;
+esac
+
 if [ -f run.pid ]; then
     OLD_PID="$(cat run.pid 2>/dev/null || true)"
     if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
@@ -17,6 +36,6 @@ if ! flock -n 8; then
 fi
 flock -u 8
 
-nohup ./Allrun_redistributionSmoke > log.Allrun.redistributionSmoke 2>&1 &
+nohup bash "$WORKER" > "$LOG" 2>&1 &
 echo $! > run.pid
-echo "Started redistribution smoke worker PID $(cat run.pid)"
+echo "Started $LABEL worker PID $(cat run.pid)"
