@@ -169,3 +169,16 @@ Checkpoint-redistribution fidelity smoke:
 
 If fidelity passes, the next gate is a 1 mm performance A/B with one controlled
 redistribution checkpoint.
+
+
+Redistribution-smoke first local execution observation:
+- the 0.5 mm workflow completed Stage 1 to the exact midpoint checkpoint
+  (8.33333e-05 s) with 60/60 beamlets hitting metal and power error
+  approximately 2.3e-13 W;
+- midpoint simpleXZ load imbalance had already grown to max/mean=1.304,
+  confirming that a mid-track rebalance remains worth testing;
+- the wrapper was no longer active and Stage 2 had not started, so this is
+  recorded as a workflow interruption, not as a redistribution-fidelity fail;
+- persistent workflow-stage/failure markers and Status reporting were added
+  before the next rerun so the exact failing operation can be identified
+  without manually inspecting many logs.
