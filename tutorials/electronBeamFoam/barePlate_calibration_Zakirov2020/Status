@@ -3,6 +3,18 @@
 LOG=log.electronBeamFoam
 if [ ! -f "$LOG" ]; then
     echo "No $LOG yet."
+    if [ -f redistribution-smoke-state.txt ]; then
+        echo 'Redistribution smoke:'
+        sed 's/^/  /' redistribution-smoke-state.txt
+    fi
+    if [ -f redistribution-smoke-failure.txt ]; then
+        echo '  failure:'
+        sed 's/^/    /' redistribution-smoke-failure.txt
+    fi
+    if [ -f log.Allrun.redistributionSmoke ]; then
+        echo '  latest workflow messages:'
+        tail -20 log.Allrun.redistributionSmoke | sed 's/^/    /'
+    fi
     exit 0
 fi
 if [ -f log.generateTrack ]; then
@@ -135,160 +147,6 @@ fi
 
 if [ -f log.Allrun.redistributionSmoke ]; then
     if ! grep -qx "stage=complete" redistribution-smoke-state.txt 2>/dev/null; then
-        echo '  latest workflow messages:'
-        tail -20 log.Allrun.redistributionSmoke | sed 's/^/    /'
-    fi
-fi
-
-echo 'Latest melt-pool:'
-if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
-    tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv | \
-    awk -F',' '
-    {
-        printf "  L = %8.3f um    W = %8.3f um\n", $3*1e6, $4*1e6;
-        printf "  D = %8.3f um    V = %8.6f mm^3\n", $5*1e6, $6*1e9;
-        printf "  Tmax = %8.2f K  Umax = %8.3f m/s\n", $7, $8;
-        printf "  recoil = %8.3f kPa  cells = %d\n", $9/1e3, $2;
-    }'
-else
-    echo '  no meltPool.csv yet'
-fi
-
-echo 'Latest fusion-zone:'
-if [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
-    tail -1 postProcessing/meltPoolDiagnostics/fusionZone.csv | \
-    awk -F',' '
-    {
-        printf "  L = %8.3f um    W = %8.3f um\n", $3*1e6, $4*1e6;
-        printf "  D = %8.3f um    V = %8.6f mm^3\n", $5*1e6, $6*1e9;
-        printf "  peakT = %8.2f K  cells = %d\n", $7, $2;
-    }'
-else
-    echo '  no fusionZone.csv yet'
-fi
-
-echo 'Latest fusion-zone sections:'
-if [ -f postProcessing/meltPoolDiagnostics/fusionZoneSections.csv ]; then
-    python3 - <<'PY' || true
-import csv
-from pathlib import Path
-p = Path("postProcessing/meltPoolDiagnostics/fusionZoneSections.csv")
-with p.open(newline="") as f:
-    rows = list(csv.DictReader(f))
-if rows:
-    t = max(float(r["time_s"]) for r in rows)
-    for r in rows:
-        if abs(float(r["time_s"]) - t) <= 1e-14:
-            print(
-                "  x={:+8.3f} mm  W={:8.3f} um  D={:8.3f} um  cells={}".format(
-                    float(r["station_m"])*1e3,
-                    float(r["width_m"])*1e6,
-                    float(r["depth_m"])*1e6,
-                    r["sectionCells"],
-                )
-            )
-PY
-else
-    echo '  no fusionZoneSections.csv yet'
-fi
-
-echo 'Station-wise experiment comparison:'
-if [ -f section-experiment-comparison.txt ]; then
-    sed 's/^/  /' section-experiment-comparison.txt
-elif [ -f postProcessing/meltPoolDiagnostics/fusionZoneSections.csv ]; then
-    python3 CompareExperimentSections.py 2>/dev/null | sed 's/^/  /' || true
-else
-    echo '  no station-wise comparison yet'
-fi
-
-echo 'Experiment comparison:'
-if [ -f calibration-comparison.txt ]; then
-    sed 's/^/  /' calibration-comparison.txt
-elif [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
-    python3 CompareExperiment.py 2>/dev/null | sed 's/^/  /' || true
-else
-    echo '  no completed fusionZone.csv yet'
-fi
-
-echo 'Run health:'
-ACTIVE=0
-MPIRUN_PID=""
-RANKS=0
-EXPECTED=48
-
-if command -v foamDictionary >/dev/null 2>&1; then
-    N="$(foamDictionary system/decomposeParDict -entry numberOfSubdomains -value 2>/dev/null || true)"
-    [[ "$N" =~ ^[0-9]+$ ]] && EXPECTED="$N"
-fi
-
-if [ -f run.pid ]; then
-    RP="$(cat run.pid 2>/dev/null || true)"
-    if [ -n "$RP" ] && kill -0 "$RP" 2>/dev/null; then
-        ACTIVE=1
-        printf '  Allrun PID = %s (active)\n' "$RP"
-        MPIRUN_PID="$(pgrep -P "$RP" -f 'mpirun.*electronBeamFoam' | head -1 || true)"
-    else
-        printf '  run.pid = %s (not active)\n' "${RP:-unknown}"
-    fi
-else
-    echo '  no run.pid'
-fi
-
-if [ -n "$MPIRUN_PID" ]; then
-    RANKS="$(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | wc -l)"
-    printf '  mpirun PID = %s\n' "$MPIRUN_PID"
-    printf '  solver ranks = %s / %s\n' "$RANKS" "$EXPECTED"
-    if [ "$RANKS" -gt 0 ]; then
-        CHILD_PIDS="$(pgrep -P "$MPIRUN_PID" -f 'electronBeamFoam -parallel' | paste -sd, -)"
-        if [ -n "$CHILD_PIDS" ]; then
-            ps -p "$CHILD_PIDS" -o %cpu=,rss= 2>/dev/null | \
-            awk '
-                NR==1 {cmin=$1; cmax=$1; rmax=$2}
-                {
-                    csum+=$1;
-                    if ($1<cmin) cmin=$1;
-                    if ($1>cmax) cmax=$1;
-                    if ($2>rmax) rmax=$2;
-                }
-                END {
-                    if (NR>0)
-                        printf "  rank CPU min/mean/max = %.1f / %.1f / %.1f %%\n  max rank RSS = %.1f MiB\n",
-                            cmin, csum/NR, cmax, rmax/1024.0;
-                }'
-        fi
-        TOTAL_SOLVER="$(pgrep -f 'electronBeamFoam -parallel' | wc -l)"
-        printf '  system-wide solver processes = %s\n' "$TOTAL_SOLVER"
-    fi
-else
-    echo '  mpirun not found under Allrun'
-fi
-
-if grep -Eq 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION' "$LOG"; then
-    echo '  FAILURE SIGNATURE detected in solver log.'
-    grep -E 'Connection reset by peer|Segmentation fault|Killed|Out of memory|FOAM FATAL ERROR|MPI_ABORT|BAD TERMINATION' "$LOG" | tail -5 | sed 's/^/    /'
-fi
-
-if [ -f "$LOG" ]; then
-    NOW="$(date +%s)"
-    MTIME="$(stat -c %Y "$LOG" 2>/dev/null || echo "$NOW")"
-    AGE=$((NOW - MTIME))
-    printf '  log age = %d s\n' "$AGE"
-
-    if [ "$ACTIVE" -eq 1 ] && [ "$AGE" -ge 300 ]; then
-        echo '  WARNING: active wrapper but solver log has not advanced for >=300 s.'
-        echo '  Last solver lines:'
-        tail -8 "$LOG" | sed 's/^/    /'
-
-        if [ -z "$MPIRUN_PID" ] || [ "$RANKS" -lt "$EXPECTED" ]; then
-            echo '  State: FAILED/DEGRADED MPI job; waiting will not recover it.'
-        elif tail -20 "$LOG" | grep -q 'Connection reset by peer'; then
-            echo '  State: MPI peer failure during/after mesh update; waiting is not useful.'
-        elif tail -20 "$LOG" | grep -Eq 'Selected .*cells for refinement|Refined from|Unrefined from'; then
-            echo '  Suspect stage: dynamic mesh topology update / field mapping.'
-        fi
-    fi
-fi
- redistribution-smoke-state.txt 2>/dev/null; then
         echo '  latest workflow messages:'
         tail -20 log.Allrun.redistributionSmoke | sed 's/^/    /'
     fi
