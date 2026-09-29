@@ -3,6 +3,57 @@ set -euo pipefail
 
 MODE="${1:-preflight}"
 
+start_background()
+{
+    local worker="$1"
+    local log="$2"
+    local label="$3"
+    local state_file="${4:-}"
+    local failure_file="${5:-}"
+
+    if [ -f run.pid ]; then
+        local old_pid
+        old_pid="$(cat run.pid 2>/dev/null || true)"
+        if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
+            echo "ERROR: run.pid points to a live process $old_pid." >&2
+            echo "Use ./Status instead of launching another run." >&2
+            return 2
+        fi
+    fi
+
+    rm -f "$failure_file"
+
+    nohup bash "$worker" > "$log" 2>&1 &
+    local pid=$!
+    echo "$pid" > run.pid
+
+    echo "Starting $label worker PID $pid ..."
+    sleep 1
+
+    if kill -0 "$pid" 2>/dev/null; then
+        echo "STARTED: $label"
+        if [ -n "$state_file" ] && [ -f "$state_file" ]; then
+            echo "Current workflow state:"
+            sed 's/^/  /' "$state_file"
+        else
+            echo "Worker is alive; state file has not been written yet."
+        fi
+        echo "Monitor with: ./Status"
+        return 0
+    fi
+
+    echo "ERROR: $label worker exited immediately." >&2
+    if [ -n "$failure_file" ] && [ -f "$failure_file" ]; then
+        echo "Failure marker:" >&2
+        sed 's/^/  /' "$failure_file" >&2
+    fi
+    if [ -f "$log" ]; then
+        echo "Last workflow log lines:" >&2
+        tail -40 "$log" | sed 's/^/  /' >&2
+    fi
+    return 1
+}
+
 case "$MODE" in
     preflight)
         # Cheap geometry/source preflight only. It is NOT the final
@@ -23,34 +74,20 @@ case "$MODE" in
         ./Run_background
         ;;
     kappa|kappa-sweep|vacuum-kappa)
-        if [ -f run.pid ]; then
-            OLD_PID="$(cat run.pid 2>/dev/null || true)"
-            if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-                echo "ERROR: run.pid points to a live process $OLD_PID." >&2
-                echo "Use ./Status instead of launching another run." >&2
-                exit 2
-            fi
-        fi
-
-        nohup bash ./Allrun_vacuumKappaSweep \
-            > log.Allrun.vacuumKappaSweep 2>&1 &
-        echo $! > run.pid
-        echo "Started Vacuum Fidelity V1 kappa sweep PID $(cat run.pid)"
+        start_background \
+            ./Allrun_vacuumKappaSweep \
+            log.Allrun.vacuumKappaSweep \
+            "Vacuum Fidelity V1 kappa sweep" \
+            vacuum-kappa-sweep-state.txt \
+            vacuum-kappa-sweep-failure.txt
         ;;
     kappa-limit|kappa-convergence|vacuum-kappa-limit)
-        if [ -f run.pid ]; then
-            OLD_PID="$(cat run.pid 2>/dev/null || true)"
-            if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-                echo "ERROR: run.pid points to a live process $OLD_PID." >&2
-                echo "Use ./Status instead of launching another run." >&2
-                exit 2
-            fi
-        fi
-
-        nohup bash ./Allrun_vacuumKappaConvergence \
-            > log.Allrun.vacuumKappaConvergence 2>&1 &
-        echo $! > run.pid
-        echo "Started Vacuum Fidelity V1b low-k convergence PID $(cat run.pid)"
+        start_background \
+            ./Allrun_vacuumKappaConvergence \
+            log.Allrun.vacuumKappaConvergence \
+            "Vacuum Fidelity V1b low-k convergence" \
+            vacuum-kappa-convergence-state.txt \
+            vacuum-kappa-convergence-failure.txt
         ;;
     *)
         echo "Usage: $0 [preflight|vacuum|kappa|kappa-limit]" >&2
