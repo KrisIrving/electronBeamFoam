@@ -39,6 +39,7 @@ start_background()
             echo "Worker is alive; state file has not been written yet."
         fi
         echo "Monitor with: ./Status"
+        echo "Workflow log: $log"
         return 0
     fi
 
@@ -48,8 +49,15 @@ start_background()
         sed 's/^/  /' "$failure_file" >&2
     fi
     if [ -f "$log" ]; then
+        echo "Workflow log: $log" >&2
         echo "Last workflow log lines:" >&2
-        tail -40 "$log" | sed 's/^/  /' >&2
+        if [ -s "$log" ]; then
+            tail -40 "$log" | sed 's/^/  /' >&2
+        else
+            echo "  (log file exists but is empty)" >&2
+        fi
+    else
+        echo "Workflow log was not created: $log" >&2
     fi
     return 1
 }
