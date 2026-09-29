@@ -288,8 +288,7 @@ segment-average ETA 当作较长期参考。
 
 ### COMPLETE
 
-若最新模拟时间已经达到生成的物理终点，或当前 solver log 已正常写出
-`End`，Status 显示：
+若最新模拟时间已经达到生成的物理终点，Status 显示：
 
 ~~~text
 ETA to case end = COMPLETE
