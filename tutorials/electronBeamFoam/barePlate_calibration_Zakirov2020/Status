@@ -501,7 +501,18 @@ PY
     if [ -f vacuumFidelity/V1_kappa/convergence.txt ]; then
         echo '  convergence:'
         sed 's/^/    /' vacuumFidelity/V1_kappa/convergence.txt
-    elif [ -f log.Allrun.vacuumKappaConvergence ]; then
+    fi
+
+    if [ -f vacuum-kappa-convergence-failure.txt ]; then
+        if [ -s vacuumFidelity/V1_kappa/convergence-error.txt ]; then
+            echo '  comparison error:'
+            tail -30 vacuumFidelity/V1_kappa/convergence-error.txt | sed 's/^/    /'
+        elif [ -f log.Allrun.vacuumKappaConvergence ]; then
+            echo '  latest workflow messages:'
+            tail -20 log.Allrun.vacuumKappaConvergence | sed 's/^/    /'
+        fi
+    elif [ ! -f vacuumFidelity/V1_kappa/convergence.txt ] \
+         && [ -f log.Allrun.vacuumKappaConvergence ]; then
         echo '  latest workflow messages:'
         tail -12 log.Allrun.vacuumKappaConvergence | sed 's/^/    /'
     fi
