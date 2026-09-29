@@ -274,3 +274,15 @@ Status ETA monitoring update:
   segment average, ETA to the case end and projected local finish time; a
   second segment-average ETA is shown when the workload is changing by enough
   to move the estimate by at least 10%.
+
+
+Vacuum Fidelity V0 live-monitoring refinement:
+- the first diagnostic run confirmed the adaptive ETA correctly recognizes the
+  0.5 mm / 166.667 us physical endpoint;
+- Status now prints the write-time timestamp for evaporation, melt-pool and
+  fusion-zone data so live solver progress cannot be confused with stale
+  write-time physics;
+- SummarizeVacuumFidelityV0.py compares implied evaporated volume with
+  fusion-zone volume and evaporation power with absorbed beam power at the
+  latest common write time;
+- Allrun_parallel archives the completed summary as vacuum-fidelity-v0.txt.
