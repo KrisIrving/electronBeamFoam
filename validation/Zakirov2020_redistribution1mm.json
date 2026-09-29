@@ -1,0 +1,72 @@
+{
+  "source": "1 mm checkpoint-redistribution performance gate",
+  "date": "2026-09-29",
+  "status": "rejected",
+  "reference": {
+    "file": "validation/Zakirov2020_decomp_simpleXZ_1mm.json",
+    "decomposition": "simpleXZ 8x1x6",
+    "clock_time_s": 24059
+  },
+  "candidate": {
+    "trajectory": "1 mm, simpleXZ to t=2e-4 s, then Scotch redistribution",
+    "ranks": 48,
+    "pre_redistribution": {
+      "local_cells_min": 37620,
+      "local_cells_max": 94488,
+      "max_over_mean": 2.3105696,
+      "heaviest_rank": 27
+    },
+    "post_redistribution": {
+      "global_cells": 1962903,
+      "local_cells_min": 40485,
+      "local_cells_max": 41301,
+      "max_over_mean": 1.009957,
+      "max_over_min": 1.020156
+    },
+    "final_max_over_mean": 1.752725913,
+    "post_restart_amr": {
+      "refined_events": 1479,
+      "unrefined_events": 1479
+    }
+  },
+  "fidelity_at_t_3e-4_s": {
+    "width_um": {
+      "baseline": 447.687,
+      "candidate": 447.687,
+      "delta_percent": 0.0
+    },
+    "depth_um": {
+      "baseline": 67.2495,
+      "candidate": 67.2495,
+      "delta_percent": 0.0
+    },
+    "length_um": {
+      "baseline": 1091.44,
+      "candidate": 1097.69,
+      "delta_percent": 0.573
+    },
+    "volume_mm3": {
+      "baseline": 0.0117503,
+      "candidate": 0.011765,
+      "delta_percent": 0.125
+    },
+    "formal_gate": "REVIEW because length delta exceeds the predeclared 0.5% threshold; do not relax the threshold post hoc"
+  },
+  "timing": {
+    "stage1_solver_wall_s": 8461,
+    "checkpoint_backup_wall_s": 1,
+    "redistributePar_wall_s": 16,
+    "checkMesh_wall_s": 1,
+    "stage2_solver_wall_s": 23414,
+    "segmented_solver_wall_s": 31875,
+    "workflow_wall_s": 31893,
+    "solver_only_speedup": 0.755,
+    "workflow_speedup": 0.754
+  },
+  "beam": {
+    "beamlets_hit": 60,
+    "hit_power_fraction": 1.0,
+    "final_power_error_W": -2.842170943e-12
+  },
+  "decision": "REJECT checkpoint redistribution for the current EPBF campaign: load balance improves strongly but end-to-end runtime degrades by about 32.6%. Close this optimization branch and return to physics/vacuum validation."
+}
