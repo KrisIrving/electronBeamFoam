@@ -348,3 +348,15 @@ Workflow-launch diagnostics improvement:
   the previous solver log;
 - Status now surfaces the current V1/V1b validation workflow state before the
   calibration/solver diagnostics.
+
+
+V1b preflight robustness fix:
+- a local V1b launch exited at preflight before k0p001 started;
+- the only V1b prerequisite at that point was the archived k0p01 summary;
+- V1b now reconstructs the missing k0p01 archive automatically when the
+  current working case can be verified as a completed 0.01x run (log scale,
+  completed solver log and required diagnostics all present);
+- otherwise the preflight error now prints the expected archive path and the
+  detected current void-k scale;
+- Run_preflight also reports the exact workflow-log path and explicitly says
+  when an immediate-failure log exists but is empty.
