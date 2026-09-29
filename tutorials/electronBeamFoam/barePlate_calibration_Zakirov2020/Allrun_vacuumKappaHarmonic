@@ -1,0 +1,130 @@
+#!/bin/bash
+set -euo pipefail
+
+# Vacuum Fidelity V1c:
+# test harmonic face interpolation of thermal conductivity while retaining the
+# same numerical-void cell conductivities used in V1 (1x, 0.1x, 0.01x).
+
+exec 9>.vacuumKappaHarmonic.run.lock
+if ! flock -n 9; then
+    echo "ERROR: another V1c harmonic-kappa sweep is active." >&2
+    exit 2
+fi
+
+ROOT="vacuumFidelity/V1c_harmonic"
+STATE="vacuum-kappa-harmonic-state.txt"
+FAILURE="vacuum-kappa-harmonic-failure.txt"
+CURRENT_STAGE="preflight"
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+
+write_state()
+{
+    CURRENT_STAGE="$1"
+    {
+        echo "stage=$CURRENT_STAGE"
+        echo "timestamp=$(date -Is)"
+        echo "worker_pid=${BASHPID}"
+        [ -n "${CURRENT_LABEL:-}" ] && echo "case=$CURRENT_LABEL"
+        [ -n "${CURRENT_SCALE:-}" ] && echo "void_kappa_scale=$CURRENT_SCALE"
+        echo "thermal_kappa_interpolation=harmonic"
+    } > "$STATE"
+}
+
+on_exit()
+{
+    local rc=$?
+    if [ "$rc" -ne 0 ]; then
+        {
+            echo "status=failed"
+            echo "stage=$CURRENT_STAGE"
+            echo "case=${CURRENT_LABEL:-none}"
+            echo "void_kappa_scale=${CURRENT_SCALE:-none}"
+            echo "thermal_kappa_interpolation=harmonic"
+            echo "exit_code=$rc"
+            echo "timestamp=$(date -Is)"
+        } > "$FAILURE"
+    else
+        rm -f "$FAILURE"
+    fi
+}
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+rm -f "$FAILURE"
+mkdir -p "$ROOT"
+write_state preflight
+
+archive_current()
+{
+    local label="$1"
+    local scale="$2"
+    local out="$ROOT/$label"
+
+    rm -rf "$out"
+    mkdir -p "$out"
+
+    python3 SummarizeVacuumKappaCase.py \
+        --label "$label" \
+        --scale "$scale" \
+        --interpolation harmonic \
+        > "$out/summary.json"
+
+    cp log.generateTrack "$out/log.generateTrack"
+    cp log.electronBeamFoam "$out/log.electronBeamFoam"
+    cp postProcessing/meltPoolDiagnostics/fusionZone.csv "$out/fusionZone.csv"
+    cp postProcessing/meltPoolDiagnostics/meltPool.csv "$out/meltPool.csv"
+    cp postProcessing/evaporationDiagnostics/evaporation.csv "$out/evaporation.csv"
+}
+
+run_candidate()
+{
+    local label="$1"
+    local scale="$2"
+
+    CURRENT_LABEL="$label"
+    CURRENT_SCALE="$scale"
+    write_state "run_$label"
+
+    echo "Starting V1c candidate $label (scale=$scale, harmonic face interpolation)..."
+
+    X_START=-0.00025 \
+    X_END=0.00025 \
+    VOID_KAPPA_SCALE="$scale" \
+    THERMAL_KAPPA_INTERP=harmonic \
+    DECOMP_PROFILE=simpleXZ \
+    AUTO_RECONSTRUCT=0 \
+    ./Allrun_parallel
+
+    write_state "archive_$label"
+    archive_current "$label" "$scale"
+}
+
+run_or_reuse()
+{
+    local label="$1"
+    local scale="$2"
+    if [ -f "$ROOT/$label/summary.json" ]; then
+        echo "Reusing completed V1c candidate $label"
+    else
+        run_candidate "$label" "$scale"
+    fi
+}
+
+run_or_reuse h1 1
+run_or_reuse h0p1 0.1
+run_or_reuse h0p01 0.01
+
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+write_state compare
+
+python3 CompareVacuumKappaHarmonic.py \
+    > "$ROOT/comparison.txt" \
+    2> "$ROOT/comparison-error.txt"
+
+write_state complete
+
+echo "Vacuum Fidelity V1c harmonic-face sweep completed."
+echo "See: $ROOT/comparison.txt"
