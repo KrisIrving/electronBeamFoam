@@ -48,6 +48,22 @@ start_background()
         return 0
     fi
 
+    # A short post-processing/resume workflow can legitimately finish
+    # during the one-second startup observation window. Treat an explicit
+    # complete state with no failure marker as success, not as a launch error.
+    if [ -n "$state_file" ] \
+       && [ -f "$state_file" ] \
+       && grep -qx 'stage=complete' "$state_file" \
+       && { [ -z "$failure_file" ] || [ ! -f "$failure_file" ]; }; then
+        echo "COMPLETED: $label"
+        sed 's/^/  /' "$state_file"
+        if [ -f "$log" ] && [ -s "$log" ]; then
+            echo "Workflow log tail:"
+            tail -20 "$log" | sed 's/^/  /'
+        fi
+        return 0
+    fi
+
     echo "ERROR: $label worker exited immediately." >&2
     if [ -n "$failure_file" ] && [ -f "$failure_file" ]; then
         echo "Failure marker:" >&2
