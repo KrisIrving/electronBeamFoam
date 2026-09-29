@@ -1,0 +1,54 @@
+{
+  "source": "Vacuum Fidelity V0 evaporation-mass diagnostic",
+  "date": "2026-09-29",
+  "status": "accepted_for_current_scope",
+  "case": {
+    "track_length_m": 0.0005,
+    "scan_time_s": 0.000166666667,
+    "preheat_K": 296,
+    "power_W": 900,
+    "absorptivity": 0.85,
+    "absorbed_power_W": 765,
+    "scan_speed_m_s": 3,
+    "decomposition": "simpleXZ 8x1x6",
+    "ranks": 48
+  },
+  "runtime": {
+    "clock_time_s": 4235
+  },
+  "fusion_zone": {
+    "length_m": 0.000685187,
+    "width_m": 0.000435187,
+    "depth_m": 0.000061,
+    "volume_m3": 5.812e-12,
+    "peakT_K": 3323.42
+  },
+  "melt_pool": {
+    "length_m": 0.000685187,
+    "width_m": 0.000441437,
+    "depth_m": 0.00006725,
+    "volume_m3": 6.742e-12,
+    "Tmax_K": 3338.74,
+    "Umax_m_per_s": 12.897,
+    "recoilMax_Pa": 18102
+  },
+  "evaporation": {
+    "massRate_kg_per_s": 3.028385e-7,
+    "cumulativeMass_kg": 2.468875e-11,
+    "equivalentMetalVolume_m3": 5.573082e-15,
+    "evaporationPower_W": 2.953,
+    "maxMassFlux_kg_per_m2_s": 15.06704,
+    "maxRecession_m_per_s": 0.003401139,
+    "geometricInterfaceArea_m2": 6.615242e-6,
+    "evaporation_to_fusion_volume_percent": 0.09589,
+    "evaporation_to_absorbed_power_percent": 0.3860
+  },
+  "resolution_context": {
+    "base_interface_y_cell_m": 6.25e-6,
+    "max_refinement_levels": 2,
+    "nominal_finest_interface_y_cell_m": 1.5625e-6,
+    "conservative_peak_recession_full_scan_upper_bound_m": 5.6686e-7,
+    "note": "The recession upper bound assumes the final peak recession speed persists over the entire scan and is therefore deliberately conservative."
+  },
+  "decision": "For the current 0.5 mm 900 W/3 m/s EPBF baseline, omitted evaporative mass removal is below the resolved interface scale and the cumulative equivalent volume is about 0.096% of the fusion-zone volume. Explicit VOF mass removal is not required before continuing vacuum-model verification. Revisit this decision for substantially hotter/deeper regimes."
+}
