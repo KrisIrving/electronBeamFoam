@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+# Vacuum-fidelity baseline:
+# - 0.5 mm Zakirov moving track
+# - accepted gradedYSmooth / PCG-DIC / pCorr2 / simpleXZ numerical baseline
+# - evaporation diagnostics enabled by EPBFPhysicsProperties
+#
+# This is a physics-diagnostic run, not the 3 mm experimental calibration.
+
+X_START=-0.00025 \
+X_END=0.00025 \
+DECOMP_PROFILE=simpleXZ \
+AUTO_RECONSTRUCT=0 \
+./Run_background
