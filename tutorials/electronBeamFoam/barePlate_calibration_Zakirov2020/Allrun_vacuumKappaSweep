@@ -1,0 +1,147 @@
+#!/bin/bash
+set -euo pipefail
+
+# Vacuum Fidelity V1: numerical-void thermal-conductivity sensitivity.
+#
+# Baseline k1 is the already completed V0 0.5 mm run in this case directory.
+# It is archived before any candidate run is allowed to clean the case.
+# Candidates scale ONLY gas.poly_kappa by 0.1 and 0.01. Everything else is
+# held at the accepted 0.5 mm simpleXZ numerical baseline.
+
+exec 9>.vacuumKappaSweep.run.lock
+if ! flock -n 9; then
+    echo "ERROR: another vacuum-kappa sweep is active." >&2
+    exit 2
+fi
+
+ROOT="vacuumFidelity/V1_kappa"
+STATE="vacuum-kappa-sweep-state.txt"
+FAILURE="vacuum-kappa-sweep-failure.txt"
+CURRENT_STAGE="preflight"
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+
+write_state()
+{
+    CURRENT_STAGE="$1"
+    {
+        echo "stage=$CURRENT_STAGE"
+        echo "timestamp=$(date -Is)"
+        echo "worker_pid=${BASHPID}"
+        if [ -n "${CURRENT_LABEL:-}" ]; then
+            echo "case=$CURRENT_LABEL"
+        fi
+        if [ -n "${CURRENT_SCALE:-}" ]; then
+            echo "void_kappa_scale=$CURRENT_SCALE"
+        fi
+    } > "$STATE"
+}
+
+on_exit()
+{
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        {
+            echo "status=failed"
+            echo "stage=$CURRENT_STAGE"
+            echo "case=${CURRENT_LABEL:-none}"
+            echo "void_kappa_scale=${CURRENT_SCALE:-none}"
+            echo "exit_code=$rc"
+            echo "timestamp=$(date -Is)"
+        } > "$FAILURE"
+    else
+        rm -f "$FAILURE"
+    fi
+}
+
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+rm -f "$FAILURE"
+mkdir -p "$ROOT"
+write_state preflight
+
+for f in \
+    postProcessing/meltPoolDiagnostics/fusionZone.csv \
+    postProcessing/meltPoolDiagnostics/meltPool.csv \
+    postProcessing/evaporationDiagnostics/evaporation.csv \
+    log.electronBeamFoam \
+    log.generateTrack
+do
+    if [ ! -f "$f" ]; then
+        echo "ERROR: completed V0 baseline file '$f' is missing." >&2
+        echo "Run ./Run_preflight vacuum first, then start V1." >&2
+        exit 1
+    fi
+done
+
+archive_current()
+{
+    label="$1"
+    scale="$2"
+    out="$ROOT/$label"
+
+    rm -rf "$out"
+    mkdir -p "$out"
+
+    python3 SummarizeVacuumKappaCase.py \
+        --label "$label" \
+        --scale "$scale" \
+        > "$out/summary.json"
+
+    cp log.generateTrack "$out/log.generateTrack"
+    cp log.electronBeamFoam "$out/log.electronBeamFoam"
+    cp postProcessing/meltPoolDiagnostics/fusionZone.csv "$out/fusionZone.csv"
+    cp postProcessing/meltPoolDiagnostics/meltPool.csv "$out/meltPool.csv"
+    cp postProcessing/evaporationDiagnostics/evaporation.csv "$out/evaporation.csv"
+
+    if [ -f vacuum-fidelity-v0.txt ]; then
+        cp vacuum-fidelity-v0.txt "$out/vacuum-fidelity-v0.txt"
+    else
+        python3 SummarizeVacuumFidelityV0.py > "$out/vacuum-fidelity-v0.txt"
+    fi
+}
+
+CURRENT_LABEL="k1"
+CURRENT_SCALE="1"
+write_state archive_k1_baseline
+archive_current "$CURRENT_LABEL" "$CURRENT_SCALE"
+
+run_candidate()
+{
+    label="$1"
+    scale="$2"
+    CURRENT_LABEL="$label"
+    CURRENT_SCALE="$scale"
+
+    write_state "run_$label"
+
+    X_START=-0.00025 \
+    X_END=0.00025 \
+    VOID_KAPPA_SCALE="$scale" \
+    DECOMP_PROFILE=simpleXZ \
+    AUTO_RECONSTRUCT=0 \
+    ./Allrun_parallel
+
+    write_state "archive_$label"
+    archive_current "$label" "$scale"
+}
+
+run_candidate k0p1 0.1
+run_candidate k0p01 0.01
+
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+write_state compare
+
+python3 CompareVacuumKappaSweep.py > "$ROOT/comparison.txt"
+
+write_state complete
+
+echo "Vacuum Fidelity V1 kappa sweep completed."
+echo "See:"
+echo "  $ROOT/k1/summary.json"
+echo "  $ROOT/k0p1/summary.json"
+echo "  $ROOT/k0p01/summary.json"
+echo "  $ROOT/comparison.txt"
