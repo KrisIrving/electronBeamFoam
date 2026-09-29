@@ -37,8 +37,23 @@ case "$MODE" in
         echo $! > run.pid
         echo "Started Vacuum Fidelity V1 kappa sweep PID $(cat run.pid)"
         ;;
+    kappa-limit|kappa-convergence|vacuum-kappa-limit)
+        if [ -f run.pid ]; then
+            OLD_PID="$(cat run.pid 2>/dev/null || true)"
+            if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+                echo "ERROR: run.pid points to a live process $OLD_PID." >&2
+                echo "Use ./Status instead of launching another run." >&2
+                exit 2
+            fi
+        fi
+
+        nohup bash ./Allrun_vacuumKappaConvergence \
+            > log.Allrun.vacuumKappaConvergence 2>&1 &
+        echo $! > run.pid
+        echo "Started Vacuum Fidelity V1b low-k convergence PID $(cat run.pid)"
+        ;;
     *)
-        echo "Usage: $0 [preflight|vacuum|kappa]" >&2
+        echo "Usage: $0 [preflight|vacuum|kappa|kappa-limit]" >&2
         exit 2
         ;;
 esac
