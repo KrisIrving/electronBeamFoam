@@ -96,6 +96,56 @@ and JSON summaries for all three cases under
 Compare W/D/L/V, Tmax, recoil, evaporation mass, energy loss and numerical
 stability. Do not change the physical radiation or evaporation terms.
 
+## Gate V1 result — REVIEW, extend to V1b
+
+The 1x / 0.1x / 0.01x sweep showed:
+
+- W/D/L unchanged over the full 100x reduction;
+- fusion-zone volume changed only +0.17% to +0.26%;
+- at 0.01x, fusion peak temperature increased 1.153%;
+- melt-pool Tmax increased 0.854%;
+- recoil pressure increased about 15.99%;
+- evaporation remained absolutely small (about 0.096% of fusion volume and
+  about 0.4% of absorbed beam power).
+
+Therefore the current 0.04 W/(m K) void conductivity is not yet demonstrated
+to be a harmless thermal regularisation. Geometry is insensitive, but
+temperature-sensitive surface physics is not demonstrably converged.
+
+Formal archive:
+`validation/Zakirov2020_vacuumFidelity_V1.json`.
+
+### Gate V1b — low-k convergence toward the vacuum limit
+
+Before V2, extend the conductivity sequence:
+
+- 0.01x  = 4e-4 W/(m K) (already available);
+- 0.001x = 4e-5 W/(m K);
+- 0.0001x = 4e-6 W/(m K).
+
+Run:
+
+    ./Run_preflight kappa-limit
+
+The last conductivity decade (0.001x -> 0.0001x) is the predeclared plateau
+gate:
+
+- W/D/L <= 0.25%;
+- fusion volume <= 0.5%;
+- fusion and melt Tmax <= 0.5%;
+- recoil <= 5%;
+- evaporation power <= 2%;
+- absolute evaporation remains <=0.5% of fusion volume and <=1% of absorbed
+  beam power.
+
+If this final decade passes, use the *largest* conductivity already inside the
+plateau, 0.001x, as the production numerical regularisation. This avoids an
+unnecessarily extreme coefficient while approximating the zero-conduction
+vacuum limit.
+
+If it does not pass, do not proceed to V2; revisit the thermal treatment of
+the numerical void explicitly.
+
 ## Gate V2 — numerical-void hydrodynamic regularisation
 
 After V1, independently perturb:
