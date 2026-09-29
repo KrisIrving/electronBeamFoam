@@ -118,8 +118,16 @@ case "$MODE" in
             vacuum-kappa-convergence-state.txt \
             vacuum-kappa-convergence-failure.txt
         ;;
+    thermal-face|kappa-harmonic|vacuum-thermal-face)
+        start_background \
+            ./Allrun_vacuumKappaHarmonic \
+            log.Allrun.vacuumKappaHarmonic \
+            "Vacuum Fidelity V1c harmonic-face conductivity" \
+            vacuum-kappa-harmonic-state.txt \
+            vacuum-kappa-harmonic-failure.txt
+        ;;
     *)
-        echo "Usage: $0 [preflight|vacuum|kappa|kappa-limit]" >&2
+        echo "Usage: $0 [preflight|vacuum|kappa|kappa-limit|thermal-face]" >&2
         exit 2
         ;;
 esac
