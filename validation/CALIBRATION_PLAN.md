@@ -217,3 +217,30 @@ Checkpoint-redistribution fidelity smoke result:
   1e-4 s write cadence, redistribute at the second normal write (2e-4 s),
   and compare the final 3e-4 s fusion-zone output plus full workflow wall time
   against validation/Zakirov2020_decomp_simpleXZ_1mm.json (24059 s baseline).
+
+
+1 mm checkpoint-redistribution performance gate:
+- candidate used the accepted 1 mm simpleXZ trajectory and write cadence,
+  with a single Scotch redistribution at t=2e-4 s;
+- pre-redistribution max/mean imbalance was 2.311 and Scotch reduced it to
+  1.010 immediately; final imbalance regrew only to 1.753;
+- at t=3e-4 s W and D were unchanged and fusion volume differed by +0.125%;
+- fusion length differed by +0.573%, narrowly exceeding the predeclared 0.5%
+  fidelity threshold, so the formal fidelity result remains REVIEW rather than
+  retroactively relaxing the gate;
+- the performance result is unambiguous: full workflow wall time was 31893 s
+  versus the accepted uninterrupted simpleXZ baseline of 24059 s, i.e.
+  0.754x speed / about 32.6% slower;
+- redistributePar itself cost only 16 s and checkMesh 1 s, so the regression
+  is dominated by the post-redistribution solver path rather than the
+  redistribution operation;
+- checkpoint redistribution is therefore REJECTED for the current validation
+  campaign.  Keep simpleXZ as the engineering baseline and close static/dynamic
+  decomposition tuning for now;
+- future performance work must consider communication topology and processor
+  interfaces, not cell-count balance alone.
+
+Performance optimisation branch closed.  The next development stage is
+Vacuum Fidelity Verification: quantify implied evaporative mass loss first,
+then test numerical-void thermophysical-property sensitivity before resuming
+source-shape calibration and the multi-condition experimental campaign.
