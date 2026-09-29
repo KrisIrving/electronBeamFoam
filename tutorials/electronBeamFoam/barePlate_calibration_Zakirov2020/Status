@@ -17,6 +17,26 @@ if [ ! -f "$LOG" ]; then
     fi
     exit 0
 fi
+echo '--- Active validation workflow ---'
+if [ -f vacuum-kappa-convergence-state.txt ]; then
+    echo 'Vacuum Fidelity V1b low-k convergence'
+    sed 's/^/  /' vacuum-kappa-convergence-state.txt
+    if [ -f vacuum-kappa-convergence-failure.txt ]; then
+        echo '  FAILURE:'
+        sed 's/^/    /' vacuum-kappa-convergence-failure.txt
+    fi
+elif [ -f vacuum-kappa-sweep-state.txt ]; then
+    echo 'Vacuum Fidelity V1 kappa sweep'
+    sed 's/^/  /' vacuum-kappa-sweep-state.txt
+    if [ -f vacuum-kappa-sweep-failure.txt ]; then
+        echo '  FAILURE:'
+        sed 's/^/    /' vacuum-kappa-sweep-failure.txt
+    fi
+else
+    echo 'none'
+fi
+echo '----------------------------------'
+
 if [ -f log.generateTrack ]; then
     echo '--- Calibration input ---'
     cat log.generateTrack
