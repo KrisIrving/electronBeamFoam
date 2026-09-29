@@ -1,0 +1,106 @@
+#!/bin/bash
+set -euo pipefail
+
+# Vacuum Fidelity V1b.
+# Extend the completed V1 sweep toward k_void -> 0:
+#   0.01x (existing) -> 0.001x -> 0.0001x.
+# This determines whether temperature/recoil have reached a low-k plateau.
+
+exec 9>.vacuumKappaConvergence.run.lock
+if ! flock -n 9; then
+    echo "ERROR: another V1b kappa-convergence run is active." >&2
+    exit 2
+fi
+
+ROOT="vacuumFidelity/V1_kappa"
+STATE="vacuum-kappa-convergence-state.txt"
+FAILURE="vacuum-kappa-convergence-failure.txt"
+CURRENT_STAGE="preflight"
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+
+write_state()
+{
+    CURRENT_STAGE="$1"
+    {
+        echo "stage=$CURRENT_STAGE"
+        echo "timestamp=$(date -Is)"
+        echo "worker_pid=${BASHPID}"
+        [ -n "${CURRENT_LABEL:-}" ] && echo "case=$CURRENT_LABEL"
+        [ -n "${CURRENT_SCALE:-}" ] && echo "void_kappa_scale=$CURRENT_SCALE"
+    } > "$STATE"
+}
+
+on_exit()
+{
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        {
+            echo "status=failed"
+            echo "stage=$CURRENT_STAGE"
+            echo "case=${CURRENT_LABEL:-none}"
+            echo "void_kappa_scale=${CURRENT_SCALE:-none}"
+            echo "exit_code=$rc"
+            echo "timestamp=$(date -Is)"
+        } > "$FAILURE"
+    else
+        rm -f "$FAILURE"
+    fi
+}
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+rm -f "$FAILURE"
+mkdir -p "$ROOT"
+write_state preflight
+
+if [ ! -f "$ROOT/k0p01/summary.json" ]; then
+    echo "ERROR: V1 k0p01 archive is missing." >&2
+    echo "Complete ./Run_preflight kappa first." >&2
+    exit 1
+fi
+
+archive_current()
+{
+    label="$1"
+    scale="$2"
+    out="$ROOT/$label"
+    rm -rf "$out"
+    mkdir -p "$out"
+
+    python3 SummarizeVacuumKappaCase.py         --label "$label"         --scale "$scale"         > "$out/summary.json"
+
+    cp log.generateTrack "$out/log.generateTrack"
+    cp log.electronBeamFoam "$out/log.electronBeamFoam"
+    cp postProcessing/meltPoolDiagnostics/fusionZone.csv "$out/fusionZone.csv"
+    cp postProcessing/meltPoolDiagnostics/meltPool.csv "$out/meltPool.csv"
+    cp postProcessing/evaporationDiagnostics/evaporation.csv "$out/evaporation.csv"
+}
+
+run_candidate()
+{
+    label="$1"
+    scale="$2"
+    CURRENT_LABEL="$label"
+    CURRENT_SCALE="$scale"
+    write_state "run_$label"
+
+    X_START=-0.00025     X_END=0.00025     VOID_KAPPA_SCALE="$scale"     DECOMP_PROFILE=simpleXZ     AUTO_RECONSTRUCT=0     ./Allrun_parallel
+
+    write_state "archive_$label"
+    archive_current "$label" "$scale"
+}
+
+run_candidate k0p001 0.001
+run_candidate k0p0001 0.0001
+
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+write_state compare
+python3 CompareVacuumKappaConvergence.py > "$ROOT/convergence.txt"
+
+write_state complete
+
+echo "Vacuum Fidelity V1b low-k convergence extension completed."
+echo "See: $ROOT/convergence.txt"
