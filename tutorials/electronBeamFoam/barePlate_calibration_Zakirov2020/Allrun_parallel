@@ -20,7 +20,17 @@ NPROCS="${NPROCS:-48}"
 MESH_PROFILE="${MESH_PROFILE:-gradedYSmooth}"
 PRESSURE_PROFILE="${PRESSURE_PROFILE:-pcg}"
 PIMPLE_PROFILE="${PIMPLE_PROFILE:-pCorr2}"
-DECOMP_PROFILE="${DECOMP_PROFILE:-scotch}"
+
+# The accepted engineering baseline on the user's 48-physical-core workstation
+# is simpleXZ. Fall back to Scotch automatically for other MPI sizes unless the
+# caller explicitly chooses a decomposition profile.
+if [ -n "${DECOMP_PROFILE:-}" ]; then
+    DECOMP_PROFILE="$DECOMP_PROFILE"
+elif [ "$NPROCS" -eq 48 ]; then
+    DECOMP_PROFILE="simpleXZ"
+else
+    DECOMP_PROFILE="scotch"
+fi
 
 case "$MESH_PROFILE" in
     uniformFine|gradedY|gradedYSmooth) ;;
