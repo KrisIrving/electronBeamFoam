@@ -700,7 +700,10 @@ Allrun PID = ... (active)
 
 ### mpirun PID
 
-表示在 Allrun wrapper 下发现的 mpirun electronBeamFoam 进程。
+表示在当前 `run.pid` wrapper 的后代进程树中发现的
+`mpirun electronBeamFoam` 进程。Status 会递归搜索后代，而不是只检查
+直接子进程，因此像 Vacuum Fidelity sweep 这种
+`wrapper -> sweep -> Allrun_parallel -> mpirun` 的多层工作流也能正确识别。
 
 若 run 已经完成，找不到 mpirun 是正常的；
 若 wrapper active 且应该正在计算，则异常。
