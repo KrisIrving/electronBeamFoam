@@ -55,12 +55,6 @@ rm -f "$FAILURE"
 mkdir -p "$ROOT"
 write_state preflight
 
-if [ ! -f "$ROOT/k0p01/summary.json" ]; then
-    echo "ERROR: V1 k0p01 archive is missing." >&2
-    echo "Complete ./Run_preflight kappa first." >&2
-    exit 1
-fi
-
 archive_current()
 {
     label="$1"
@@ -77,6 +71,61 @@ archive_current()
     cp postProcessing/meltPoolDiagnostics/meltPool.csv "$out/meltPool.csv"
     cp postProcessing/evaporationDiagnostics/evaporation.csv "$out/evaporation.csv"
 }
+
+# V1b needs the completed 0.01x point as its convergence anchor. Normally
+# this is already archived by the V1 sweep. If the local archive was removed
+# while the completed 0.01x case is still present in the working directory,
+# rebuild the archive automatically instead of failing silently.
+if [ ! -f "$ROOT/k0p01/summary.json" ]; then
+    echo "V1 k0p01 archive is missing; checking current completed case..."
+
+    CURRENT_SCALE_IN_LOG="$(
+        awk -F'= ' '/^[[:space:]]*void k scale[[:space:]]*=/{print $2}'             log.generateTrack 2>/dev/null | tail -1 | awk '{print $1}'
+    )"
+
+    if [ "$CURRENT_SCALE_IN_LOG" = "0.01" ]        && [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]        && [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]        && [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]        && grep -q '^End    label="$1"
+    scale="$2"
+    CURRENT_LABEL="$label"
+    CURRENT_SCALE="$scale"
+    write_state "run_$label"
+
+    X_START=-0.00025     X_END=0.00025     VOID_KAPPA_SCALE="$scale"     DECOMP_PROFILE=simpleXZ     AUTO_RECONSTRUCT=0     ./Allrun_parallel
+
+    write_state "archive_$label"
+    archive_current "$label" "$scale"
+}
+
+run_candidate k0p001 0.001
+run_candidate k0p0001 0.0001
+
+CURRENT_LABEL=""
+CURRENT_SCALE=""
+write_state compare
+python3 CompareVacuumKappaConvergence.py > "$ROOT/convergence.txt"
+
+write_state complete
+
+echo "Vacuum Fidelity V1b low-k convergence extension completed."
+echo "See: $ROOT/convergence.txt"
+ log.electronBeamFoam 2>/dev/null; then
+
+        echo "Current working case is a completed 0.01x run; rebuilding archive."
+        CURRENT_LABEL="k0p01"
+        CURRENT_SCALE="0.01"
+        write_state rebuild_k0p01_archive
+        archive_current "$CURRENT_LABEL" "$CURRENT_SCALE"
+        CURRENT_LABEL=""
+        CURRENT_SCALE=""
+        write_state preflight
+    else
+        echo "ERROR: V1 k0p01 archive is missing and the current case cannot be" >&2
+        echo "       verified as a completed 0.01x result." >&2
+        echo "Expected archive: $ROOT/k0p01/summary.json" >&2
+        echo "Current log void-k scale: ${CURRENT_SCALE_IN_LOG:-unavailable}" >&2
+        echo "Run ./Run_preflight kappa first, or restore the V1 archive." >&2
+        exit 1
+    fi
+fi
 
 run_candidate()
 {
