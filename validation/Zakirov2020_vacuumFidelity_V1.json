@@ -1,0 +1,59 @@
+{
+  "source": "Vacuum Fidelity V1 numerical-void thermal-conductivity sensitivity",
+  "date": "2026-09-29",
+  "status": "review_extend_to_low_k_limit",
+  "case": {
+    "track_length_m": 0.0005,
+    "preheat_K": 296,
+    "power_W": 900,
+    "absorptivity": 0.85,
+    "scan_speed_m_s": 3,
+    "decomposition": "simpleXZ 8x1x6",
+    "ranks": 48
+  },
+  "baseline_k1": {
+    "k_void_W_m_K": 0.04,
+    "width_um": 435.187,
+    "depth_um": 60.9995,
+    "length_um": 685.187,
+    "fusion_volume_mm3": 0.0058122,
+    "fusion_peakT_K": 3323.42,
+    "melt_Tmax_K": 3338.74,
+    "recoil_Pa": 18101.6,
+    "evap_volume_m3": 5.573082e-15,
+    "evaporation_power_W": 2.95267,
+    "clock_time_s": 4235
+  },
+  "k0p1": {
+    "k_void_W_m_K": 0.004,
+    "delta_percent_vs_k1": {
+      "width": 0.0,
+      "depth": 0.0,
+      "length": 0.0,
+      "fusion_volume": 0.260,
+      "fusion_peakT": 0.433,
+      "melt_Tmax": 0.034,
+      "recoil": 0.658,
+      "evap_volume": -0.603,
+      "evaporation_power": 1.336
+    },
+    "clock_time_s": 4744
+  },
+  "k0p01": {
+    "k_void_W_m_K": 0.0004,
+    "delta_percent_vs_k1": {
+      "width": 0.0,
+      "depth": 0.0,
+      "length": 0.0,
+      "fusion_volume": 0.170,
+      "fusion_peakT": 1.153,
+      "melt_Tmax": 0.854,
+      "recoil": 15.991,
+      "evap_volume": -0.156,
+      "evaporation_power": 3.905
+    },
+    "evap_to_fusion_volume_percent": 0.095573,
+    "clock_time_s": 4332
+  },
+  "decision": "Do not advance to V2 yet. Geometry is insensitive over 100x k_void reduction, but surface-temperature-sensitive physics is not demonstrably converged: fusion peak temperature exceeds the predeclared 1% gate at 0.01x and recoil changes by about 16%. Extend V1 toward k_void -> 0 and identify a low-conductivity plateau. Prefer the largest k_void within that plateau for numerical robustness."
+}
