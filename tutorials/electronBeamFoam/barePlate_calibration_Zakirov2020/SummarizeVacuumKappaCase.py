@@ -8,6 +8,7 @@ import re
 parser = argparse.ArgumentParser()
 parser.add_argument("--label", required=True)
 parser.add_argument("--scale", type=float, required=True)
+parser.add_argument("--interpolation", default="linear")
 args = parser.parse_args()
 
 case = Path(__file__).resolve().parent
@@ -77,6 +78,7 @@ final_imbalance = float(imbalance[-1]) if imbalance else None
 summary = {
     "label": args.label,
     "void_kappa_scale": args.scale,
+    "thermal_kappa_interpolation": args.interpolation,
     "final_time_s": final_t,
     "clock_time_s": clock_time,
     "power_error_W": power_error,
