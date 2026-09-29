@@ -111,13 +111,8 @@ timing_re = re.compile(
 
 pairs = []
 cur_t = None
-ended = False
-
 with log.open(errors="replace") as f:
     for line in f:
-        if line.strip() == "End":
-            ended = True
-
         m = time_re.match(line)
         if m:
             cur_t = float(m.group(1))
@@ -249,11 +244,7 @@ else:
 
     finished = (
         target is not None
-        and
-        (
-            latest_t >= target - max(1e-12, 1e-7*abs(target))
-            or ended
-        )
+        and latest_t >= target - max(1e-12, 1e-7*abs(target))
     )
 
     if finished:
