@@ -391,6 +391,54 @@ else
     echo '  not started'
 fi
 
+echo 'Vacuum Fidelity V1 kappa sweep:'
+if [ -f vacuum-kappa-sweep-state.txt ]; then
+    sed 's/^/  /' vacuum-kappa-sweep-state.txt
+
+    if [ -f vacuum-kappa-sweep-failure.txt ]; then
+        echo '  failure:'
+        sed 's/^/    /' vacuum-kappa-sweep-failure.txt
+    fi
+
+    for KCASE in k1 k0p1 k0p01; do
+        if [ -f "vacuumFidelity/V1_kappa/$KCASE/summary.json" ]; then
+            python3 - "$KCASE" <<'PY' || true
+import json
+import sys
+from pathlib import Path
+
+label=sys.argv[1]
+p=Path("vacuumFidelity/V1_kappa")/label/"summary.json"
+d=json.loads(p.read_text())
+fz=d["fusion_zone"]
+ev=d["evaporation"]
+print(
+    "  {}: scale={}  W={:.3f} um D={:.3f} um "
+    "V={:.6f} mm^3  evapV={:.3e} m^3  clock={} s".format(
+        label,
+        d["void_kappa_scale"],
+        fz["width_m"]*1e6,
+        fz["depth_m"]*1e6,
+        fz["volume_m3"]*1e9,
+        ev["equivalentMetalVolume_m3"],
+        "n/a" if d.get("clock_time_s") is None else int(d["clock_time_s"]),
+    )
+)
+PY
+        fi
+    done
+
+    if [ -f vacuumFidelity/V1_kappa/comparison.txt ]; then
+        echo '  comparison:'
+        sed 's/^/    /' vacuumFidelity/V1_kappa/comparison.txt
+    elif [ -f log.Allrun.vacuumKappaSweep ]; then
+        echo '  latest workflow messages:'
+        tail -12 log.Allrun.vacuumKappaSweep | sed 's/^/    /'
+    fi
+else
+    echo '  not started'
+fi
+
 echo 'Latest evaporation:'
 if [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]; then
     tail -1 postProcessing/evaporationDiagnostics/evaporation.csv | \
