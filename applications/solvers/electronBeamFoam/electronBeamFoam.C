@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
     scalar profileDeltaTMin = GREAT;
     scalar profileDeltaTMax = 0.0;
 
-    Info<< "electronBeamFoam build tag = meshBalance-v5-pCorr2Baseline" << nl
+    Info<< "electronBeamFoam build tag = vacuumFidelity-v1-evaporationDiagnostics" << nl
         << "\nStarting time loop\n" << endl;
 
     if (performanceProfiling)
@@ -395,6 +395,8 @@ int main(int argc, char *argv[])
             peakTemperature.correctBoundaryConditions();
             everMelted.correctBoundaryConditions();
         }
+
+        #include "evaporationDiagnostics.H"
 
         const bool profileReportNow =
             performanceProfiling && runTime.writeTime();
