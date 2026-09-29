@@ -40,7 +40,7 @@ Status 只读取日志、CSV 和进程信息，不修改计算场，也不会推
 | 信息 | 数据来源 | 更新频率 |
 |---|---|---|
 | simulation time / ExecutionTime / ClockTime / deltaT | log.electronBeamFoam | 基本每个 CFD step |
-| throughput | log.electronBeamFoam | 根据已完成 steps 计算 |
+| progress / ETA | log.generateTrack + log.electronBeamFoam | 根据当前 solver 段和最近墙钟窗口计算 |
 | beam diagnostics | solver log | 正常 write time |
 | performance profile | solver log | 正常 write time |
 | local cells / imbalance / heaviest rank | performance profile | 正常 write time |
@@ -74,6 +74,8 @@ scan speed
 x start/end
 track length
 scan time
+cool time
+end time
 line energy
 absorptivity
 beam radius
@@ -180,97 +182,137 @@ cell imbalance
 
 ---
 
-## 7. Recent simulation throughput
+## 7. Progress / ETA
+
+Status 不再假定算例终点固定为 0.001 s。
+
+目标物理终点按以下优先级自动识别：
+
+1. `log.generateTrack` 中显式记录的 `end time`；
+2. 旧日志中使用 `scan time + cool time`，若没有 cool time 则按 0；
+3. 最后才回退到当前 `system/controlDict` 的 `endTime`。
+
+因此 0.5 mm、1 mm、3 mm、不同扫描速度以及以后带 cooling time 的 case
+都使用各自真实物理终点。
 
 典型输出：
 
 ~~~text
-Recent simulation throughput:
-  recent 200 steps: 456.78 wall-s/sim-us
-                    (7.88 sim-us/wall-h), ETA~20.3 h
-  since resume log: 311.37 wall-s/sim-us
-                    (11.56 sim-us/wall-h), ETA~13.8 h
+Progress / ETA:
+  target physical end = 0.000166666667 s
+  physical progress    = 62.50%  (104.167 / 166.667 sim-us)
+  current pace         = 27.4 wall-s/sim-us
+    window             = last 15.0 wall-min, 32.8 sim-us
+  current solver avg   = 20.1 wall-s/sim-us
+  ETA to case end      = ~28m
+  projected finish     = ~2026-09-29 10:42
+  segment-average ETA  = ~21m (pace is changing)
 ~~~
 
-### wall-s/sim-us
+### physical progress
 
-定义：
+定义为：
 
 ~~~text
-真实墙钟秒数 / 推进的模拟微秒数
+latest simulation time / generated physical end time
 ~~~
 
-若两个样本为：
+它反映整个算例的物理进度，而不是某个 write interval 的进度。
 
-~~~text
-simulation time: t0 -> t1
-ClockTime:       C0 -> C1
-~~~
+### current pace
 
-则：
+默认使用最近约 15 分钟墙钟时间内的完整 CFD steps：
 
 ~~~text
 wall-s/sim-us =
-(C1 - C0) / ((t1 - t0) * 1e6)
+wall-clock increment / simulated-microsecond increment
 ~~~
 
-越小越快。
+这样比固定“最近 200 steps”更稳定：
 
-例如 180 wall-s/sim-us 表示：
+- deltaT 很小时，200 steps 可能只代表极短物理时间；
+- deltaT 较大时，200 steps 又可能覆盖过长历史；
+- 固定墙钟窗口更接近“这台机器此刻按当前 melt-pool/AMR 状态跑多快”。
 
-> 模拟 1 microsecond 的真实物理过程，需要电脑运行约 180 秒。
+### current solver avg
 
-### sim-us/wall-h
+只统计当前 electronBeamFoam 进程的 timing segment。
 
-为上一指标的倒数表达：
+restart 后 OpenFOAM 的 ExecutionTime/ClockTime 会从零重新开始。Status 会检测
+这个 timing reset，并自动切分 log，不再把 restart 前后的 ClockTime 错误相减。
+
+因此 checkpoint/restart case 中：
 
 ~~~text
-sim-us/wall-h = 3600 / (wall-s/sim-us)
+current solver avg
 ~~~
 
-越大越快。
+表示当前 restart 段的平均性能，而不是把两个独立 solver 进程混在一起。
 
-20 sim-us/wall-h 表示：
+### ETA to case end
 
-> 电脑真实运行 1 小时，可推进约 20 microseconds 的模拟时间。
-
-### recent 200 steps
-
-只看最近约 200 个完整 CFD steps。
-
-回答：
-
-> 现在这一小段跑多快？
-
-它最适合发现最近是否突然变慢。
-
-若：
+主 ETA 使用：
 
 ~~~text
-recent 200 steps = 450 wall-s/sim-us
-since resume     = 300 wall-s/sim-us
+remaining simulated time
+×
+current pace
 ~~~
 
-说明最近明显慢于长期平均。
+进行局部线性外推。
 
-### since resume log
+它回答的是：
 
-使用当前 log.electronBeamFoam 中全部可配对的 Time / ExecutionTime /
-ClockTime 样本。
+> 如果接下来维持最近约 15 分钟的推进速度，还需要多少真实墙钟时间？
 
-resume 后的新 log 中，它表示“从 resume 到现在的平均速度”；
-fresh run 中，它实际表示“当前 solver log 从开始到现在的平均速度”。
+Status 同时给出本机本地时间下的 projected finish。
 
-### ETA
+### segment-average ETA
 
-当前脚本按 t = 0.001 s 作为目标时间做线性外推，因此主要服务于
-3 mm / 3 m/s full reference。
+若“最近 15 分钟速度”和“当前 solver 段长期平均速度”导致的 ETA 相差至少
+10%，Status 额外显示 segment-average ETA，并标记：
 
-注意：
+~~~text
+pace is changing
+~~~
 
-- ETA 假设后续速度与采样窗口类似；
-- deltaT、cell 数、thermal correctors 都可能继续变化；
-- 对 0.5 mm 或 1 mm probe，当前 ETA 没有严格意义，不应用于判断短算例剩余时间。
+这意味着当前计算成本正在明显变化，常见原因包括：
+
+- deltaT 下降；
+- AMR cells 增加；
+- 熔池成熟后 thermal correctors 增加；
+- MPI imbalance 变化。
+
+此时优先把 local/current ETA 当作“当前条件继续下去”的估计，把
+segment-average ETA 当作较长期参考。
+
+### COMPLETE
+
+若最新模拟时间已经达到生成的物理终点，或当前 solver log 已正常写出
+`End`，Status 显示：
+
+~~~text
+ETA to case end = COMPLETE
+~~~
+
+而不会继续给出虚假的剩余小时数。
+
+### 限制
+
+ETA 仍然不是保证完成时间。
+
+electronBeamFoam 的单位物理时间成本会随：
+
+- deltaT；
+- dynamic AMR；
+- melt-pool velocity；
+- pressure/thermal iterations；
+- MPI workload；
+
+持续变化。
+
+因此越接近当前状态，local ETA 越有代表性；长轨迹早期 ETA 应理解为动态估计，
+不是固定承诺。
 
 ---
 
@@ -933,11 +975,12 @@ section 只在 write time 更新。
 
 它可能来自历史错误，需要结合 live health 和 End 判断。
 
-### 0.5 mm / 1 mm probe 的 ETA 可以直接相信
+### ETA 是固定不变的完成时间
 
-当前不可以。
+错误。
 
-ETA 目标固定为 1 ms，主要针对完整 3 mm reference。
+ETA 会根据当前算例的真实 end time 和最近约 15 分钟推进速度动态更新。
+随着 deltaT、AMR 和熔池负载变化，它可以明显上升或下降。
 
 ---
 
@@ -1035,7 +1078,7 @@ D_section(t)
 
 当前 Status 有以下明确限制：
 
-1. ETA 固定以 t=0.001 s 为目标，主要适用于 3 mm / 3 m/s full reference。
+1. ETA 是基于最近约 15 分钟局部推进速度的动态外推，后续 workload 改变时会变化。
 2. rank CPU 来自 ps %CPU，不是严格瞬时 MPI workload 采样。
 3. failure signature 扫描整个当前 log，可能包含已经恢复的历史错误。
 4. beam/performance/melt/fusion/section 只在 write time 更新。
