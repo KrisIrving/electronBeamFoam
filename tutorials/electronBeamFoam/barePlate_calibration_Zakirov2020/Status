@@ -550,7 +550,54 @@ if [ -f run.pid ]; then
     if [ -n "$RP" ] && kill -0 "$RP" 2>/dev/null; then
         ACTIVE=1
         printf '  Allrun PID = %s (active)\n' "$RP"
-        MPIRUN_PID="$(pgrep -P "$RP" -f 'mpirun.*electronBeamFoam' | head -1 || true)"
+        MPIRUN_PID="$(python3 - "$RP" <<'PY' || true
+import subprocess
+import sys
+from collections import defaultdict, deque
+
+root = int(sys.argv[1])
+
+try:
+    text = subprocess.check_output(
+        ["ps", "-eo", "pid=,ppid=,args="],
+        text=True,
+        errors="replace",
+    )
+except Exception:
+    raise SystemExit(0)
+
+children = defaultdict(list)
+cmd = {}
+
+for line in text.splitlines():
+    parts = line.strip().split(None, 2)
+    if len(parts) < 2:
+        continue
+    try:
+        pid = int(parts[0])
+        ppid = int(parts[1])
+    except ValueError:
+        continue
+    children[ppid].append(pid)
+    cmd[pid] = parts[2] if len(parts) > 2 else ""
+
+queue = deque(children.get(root, []))
+seen = set()
+
+while queue:
+    pid = queue.popleft()
+    if pid in seen:
+        continue
+    seen.add(pid)
+
+    c = cmd.get(pid, "")
+    if "mpirun" in c and "electronBeamFoam" in c:
+        print(pid)
+        break
+
+    queue.extend(children.get(pid, []))
+PY
+)"
     else
         printf '  run.pid = %s (not active)\n' "${RP:-unknown}"
     fi
