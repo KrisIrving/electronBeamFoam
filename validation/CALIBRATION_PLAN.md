@@ -244,3 +244,17 @@ Performance optimisation branch closed.  The next development stage is
 Vacuum Fidelity Verification: quantify implied evaporative mass loss first,
 then test numerical-void thermophysical-property sensitivity before resuming
 source-shape calibration and the multi-condition experimental campaign.
+
+
+Vacuum Fidelity Verification opened:
+- formal test plan: docs/VACUUM_FIDELITY_PLAN.md;
+- V0 adds diagnostic-only conversion of the existing evaporation latent-heat
+  sink into implied mass rate and cumulative evaporated mass; no metal mass is
+  removed from alpha.metal yet;
+- cumulativeEvaporatedMassDensity is restart/AMR aware when diagnostics are
+  enabled in EPBFPhysicsProperties;
+- first execution gate is the accepted 0.5 mm simpleXZ path via
+  `./Run_preflight vacuum`;
+- use the V0 result to decide whether explicit evaporative mass transfer is
+  physically required before proceeding to numerical-void k/rho/nu
+  sensitivities.
