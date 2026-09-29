@@ -37,6 +37,11 @@ Status 只读取日志、CSV 和进程信息，不修改计算场，也不会推
 
 不同字段的更新时间不同，这是正确理解 Status 的第一步。
 
+为避免把实时 solver 时间与 write-time 诊断混淆，evaporation、melt-pool
+和 fusion-zone 摘要现在显式显示各自的 `data time`。例如 solver 已推进到
+160 us，但最近一次正常 write 是 83.3 us，则物理诊断仍应解释为 83.3 us
+时刻的数据，而不是当前 160 us 状态。
+
 | 信息 | 数据来源 | 更新频率 |
 |---|---|---|
 | simulation time / ExecutionTime / ClockTime / deltaT | log.electronBeamFoam | 基本每个 CFD step |
