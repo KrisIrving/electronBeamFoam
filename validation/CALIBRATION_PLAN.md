@@ -360,3 +360,13 @@ V1b preflight robustness fix:
   detected current void-k scale;
 - Run_preflight also reports the exact workflow-log path and explicitly says
   when an immediate-failure log exists but is empty.
+
+
+V1b comparison/resume fix:
+- both low-k CFD candidates completed successfully; the observed failure was
+  confined to the final comparison stage;
+- CompareVacuumKappaConvergence.py was rewritten with explicit schema/finite
+  checks and traceback reporting;
+- convergence stderr is now preserved separately;
+- Allrun_vacuumKappaConvergence is resume-safe: existing k0p001/k0p0001
+  summaries are reused and only missing candidates are recalculated.
