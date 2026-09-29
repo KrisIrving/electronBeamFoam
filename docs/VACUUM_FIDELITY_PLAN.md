@@ -52,17 +52,46 @@ finest interface-cell scale and with the fusion-zone volume. If the implied
 surface recession is not small relative to the resolved interface scale,
 explicit evaporative mass removal becomes a required physics development.
 
+## Gate V0 result — ACCEPTED FOR CURRENT BASELINE
+
+Completed 0.5 mm / 296 K / 900 W / 3 m/s simpleXZ case:
+
+- equivalent evaporated metal volume: about 5.57e-15 m3;
+- fusion-zone volume: about 5.812e-12 m3;
+- evaporation/fusion volume: about 0.096%;
+- final evaporation power: about 2.95 W, or 0.386% of the 765 W absorbed beam power;
+- a deliberately conservative upper bound obtained by holding the final peak
+  recession speed for the entire scan is about 0.57 um;
+- the graded-y interface base cell is 6.25 um and maxRefinement=2 gives a
+  nominal finest y scale of about 1.56 um.
+
+Decision: do not add explicit VOF mass removal before the remaining vacuum
+fidelity gates. This decision applies to the present calibration regime and
+must be revisited for hotter/deeper regimes where evaporation grows strongly.
+
+Formal archive:
+`validation/Zakirov2020_vacuumFidelity_V0.json`.
+
 ## Gate V1 — numerical-void thermal transport
 
 The current numerical void still has finite thermal conductivity and heat
 capacity. This can create an artificial conductive heat-loss path in a vacuum.
 
 Hold all metal, beam and interface physics fixed and vary numerical-void
-thermal conductivity first. At minimum test:
+thermal conductivity first:
 
-- current k_void;
-- 0.1 x current k_void;
-- 0.01 x current k_void.
+- current k_void = 0.04 W/(m K), scale 1;
+- scale 0.1 -> 0.004 W/(m K);
+- scale 0.01 -> 0.0004 W/(m K).
+
+The completed V0 case is archived locally as the exact 1x baseline before the
+candidate runs start. Run the controlled sweep with:
+
+    ./Run_preflight kappa
+
+The harness then runs only the 0.1x and 0.01x candidates, archives exact CSV
+and JSON summaries for all three cases under
+`vacuumFidelity/V1_kappa/`, and writes `comparison.txt`.
 
 Compare W/D/L/V, Tmax, recoil, evaporation mass, energy loss and numerical
 stability. Do not change the physical radiation or evaporation terms.
