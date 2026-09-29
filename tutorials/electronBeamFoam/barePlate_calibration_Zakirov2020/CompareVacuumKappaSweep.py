@@ -4,28 +4,18 @@ import json
 
 case = Path(__file__).resolve().parent
 root = case / "vacuumFidelity" / "V1_kappa"
-repo = case.parents[2]
-baseline_path = repo / "validation" / "Zakirov2020_vacuumFidelity_V0.json"
+baseline_path = root / "k1" / "summary.json"
 
 if not baseline_path.is_file():
     raise SystemExit(f"Missing {baseline_path}")
 
-baseline = json.loads(baseline_path.read_text())
+base = json.loads(baseline_path.read_text())
 candidates = []
 for label in ("k0p1", "k0p01"):
     p = root / label / "summary.json"
     if not p.is_file():
         raise SystemExit(f"Missing {p}")
     candidates.append(json.loads(p.read_text()))
-
-base = {
-    "label": "k1",
-    "void_kappa_scale": 1.0,
-    "clock_time_s": baseline["runtime"]["clock_time_s"],
-    "fusion_zone": baseline["fusion_zone"],
-    "melt_pool": baseline["melt_pool"],
-    "evaporation": baseline["evaporation"],
-}
 
 def pct(new, old):
     if abs(old) < 1e-30:
