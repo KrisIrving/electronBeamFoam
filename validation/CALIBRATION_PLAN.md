@@ -370,3 +370,23 @@ V1b comparison/resume fix:
 - convergence stderr is now preserved separately;
 - Allrun_vacuumKappaConvergence is resume-safe: existing k0p001/k0p0001
   summaries are reused and only missing candidates are recalculated.
+
+
+Vacuum Fidelity V1b final:
+- workflow completed and both low-k candidates were archived;
+- final decade 0.001x -> 0.0001x: W/D/L 0%, V +0.081%, fusion Tmax
+  +0.478%, melt Tmax +0.628%, recoil +11.535%, Qevap +0.573%;
+- V1b is REVIEW: the predeclared melt-Tmax and recoil plateau gates fail;
+- do not continue reducing cell-centred k_void and do not advance to V2 yet.
+
+Vacuum Fidelity V1c opened:
+- hypothesis: the remaining artificial vacuum heat path is controlled by the
+  face interpolation used by fvm::laplacian(kappa,T), not simply the pure-void
+  cell value;
+- Allrun_parallel now supports THERMAL_KAPPA_INTERP=linear|harmonic and restores
+  fvSchemes after every run;
+- V1c uses OpenFOAM harmonic interpolation for the thermal diffusion
+  coefficient at 1x / 0.1x / 0.01x cell k_void;
+- execute with `./Run_preflight thermal-face`;
+- compare the harmonic 0.1x -> 0.01x decade against the same plateau gate
+  before considering V2.
