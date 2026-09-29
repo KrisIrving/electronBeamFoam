@@ -1,0 +1,33 @@
+{
+  "source": "Vacuum Fidelity V1b low-k conductivity convergence",
+  "date": "2026-09-29",
+  "status": "review_not_converged",
+  "sequence": [
+    {"scale": 0.01, "k_void_W_m_K": 0.0004},
+    {"scale": 0.001, "k_void_W_m_K": 0.00004},
+    {"scale": 0.0001, "k_void_W_m_K": 0.000004}
+  ],
+  "final_decade_delta_percent_0p001_to_0p0001": {
+    "width": 0.0,
+    "depth": 0.0,
+    "length": 0.0,
+    "fusion_volume": 0.081,
+    "fusion_peakT": 0.478,
+    "melt_Tmax": 0.628,
+    "recoil": 11.535,
+    "evaporation_power": 0.573,
+    "evaporation_volume": 0.241
+  },
+  "final_absolute": {
+    "evaporation_to_fusion_volume_percent": 0.095274,
+    "evaporation_to_absorbed_power_percent": 0.396505
+  },
+  "gate": {
+    "geometry_WDL_percent": 0.25,
+    "fusion_volume_percent": 0.5,
+    "temperature_percent": 0.5,
+    "recoil_percent": 5.0,
+    "evaporation_power_percent": 2.0
+  },
+  "decision": "REVIEW. Geometry is converged, but the final conductivity decade does not satisfy the melt-Tmax and recoil plateau gates. Do not continue reducing cell k_void or advance directly to density/viscosity sensitivity. Reformulate the face conductivity used by the thermal Laplacian so a numerical void can retain benign cell properties without creating continuum conductive heat transfer across the metal-void interface."
+}
