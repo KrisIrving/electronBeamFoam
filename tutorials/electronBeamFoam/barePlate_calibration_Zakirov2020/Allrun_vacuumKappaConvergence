@@ -153,7 +153,9 @@ CURRENT_SCALE=""
 write_state compare
 
 echo "Comparing V1b low-k convergence..."
-python3 CompareVacuumKappaConvergence.py > "$ROOT/convergence.txt"
+python3 CompareVacuumKappaConvergence.py \
+    > "$ROOT/convergence.txt" \
+    2> "$ROOT/convergence-error.txt"
 
 write_state complete
 
