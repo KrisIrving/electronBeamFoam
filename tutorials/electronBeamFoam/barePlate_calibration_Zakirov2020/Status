@@ -18,7 +18,14 @@ if [ ! -f "$LOG" ]; then
     exit 0
 fi
 echo '--- Active validation workflow ---'
-if [ -f vacuum-kappa-convergence-state.txt ]; then
+if [ -f vacuum-kappa-harmonic-state.txt ]; then
+    echo 'Vacuum Fidelity V1c harmonic-face conductivity'
+    sed 's/^/  /' vacuum-kappa-harmonic-state.txt
+    if [ -f vacuum-kappa-harmonic-failure.txt ]; then
+        echo '  FAILURE:'
+        sed 's/^/    /' vacuum-kappa-harmonic-failure.txt
+    fi
+elif [ -f vacuum-kappa-convergence-state.txt ]; then
     echo 'Vacuum Fidelity V1b low-k convergence'
     sed 's/^/  /' vacuum-kappa-convergence-state.txt
     if [ -f vacuum-kappa-convergence-failure.txt ]; then
