@@ -23,6 +23,11 @@ start_background()
 
     rm -f "$failure_file"
 
+    if ! bash -n "$worker"; then
+        echo "ERROR: shell syntax check failed for $worker; not starting." >&2
+        return 1
+    fi
+
     nohup bash "$worker" > "$log" 2>&1 &
     local pid=$!
     echo "$pid" > run.pid
