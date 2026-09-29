@@ -286,3 +286,30 @@ Vacuum Fidelity V0 live-monitoring refinement:
   fusion-zone volume and evaporation power with absorbed beam power at the
   latest common write time;
 - Allrun_parallel archives the completed summary as vacuum-fidelity-v0.txt.
+
+
+Vacuum Fidelity V0 final decision:
+- completed 0.5 mm simpleXZ run reached the generated physical endpoint;
+- cumulative implied evaporated mass = 2.469e-11 kg;
+- equivalent evaporated volume = 5.573e-15 m3, about 0.096% of the
+  5.812e-12 m3 cumulative fusion-zone volume;
+- final evaporation power = 2.953 W, about 0.386% of 765 W absorbed beam power;
+- peak local recession speed = 3.401e-3 m/s; even the deliberately
+  conservative full-scan peak-speed upper bound is about 0.57 um, below the
+  nominal ~1.56 um finest interface y scale from 6.25 um base spacing and
+  maxRefinement=2;
+- explicit evaporative mass removal is therefore deferred for the present
+  calibration regime. Revisit this gate if later conditions produce
+  substantially stronger evaporation.
+
+Vacuum Fidelity V1 opened:
+- vary only gas/numerical-void thermal conductivity by 1x / 0.1x / 0.01x;
+- exact completed V0 outputs are archived as the 1x local baseline before
+  candidates are run;
+- primary gate: |dW|, |dD|, |dL| <= 0.5%, |dV| <= 1%, and temperature
+  changes <= 1%;
+- secondary evaporation gate uses absolute importance rather than only
+  relative change: evap/fusion volume <=0.5% and evaporation power <=1% of
+  absorbed beam power;
+- execute with `./Run_preflight kappa`; compare exact archived summaries in
+  `vacuumFidelity/V1_kappa/comparison.txt`.
