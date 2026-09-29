@@ -439,6 +439,56 @@ else
     echo '  not started'
 fi
 
+echo 'Vacuum Fidelity V1b low-k convergence:'
+if [ -f vacuum-kappa-convergence-state.txt ]; then
+    sed 's/^/  /' vacuum-kappa-convergence-state.txt
+
+    if [ -f vacuum-kappa-convergence-failure.txt ]; then
+        echo '  failure:'
+        sed 's/^/    /' vacuum-kappa-convergence-failure.txt
+    fi
+
+    for KCASE in k0p01 k0p001 k0p0001; do
+        if [ -f "vacuumFidelity/V1_kappa/$KCASE/summary.json" ]; then
+            python3 - "$KCASE" <<'PY' || true
+import json
+import sys
+from pathlib import Path
+
+label=sys.argv[1]
+p=Path("vacuumFidelity/V1_kappa")/label/"summary.json"
+d=json.loads(p.read_text())
+fz=d["fusion_zone"]
+mp=d["melt_pool"]
+ev=d["evaporation"]
+print(
+    "  {}: scale={}  Tmax={:.2f} K recoil={:.3f} kPa "
+    "W={:.3f} um D={:.3f} um V={:.6f} mm^3 Qevap={:.3f} W".format(
+        label,
+        d["void_kappa_scale"],
+        mp["Tmax_K"],
+        mp["recoilMax_Pa"]/1e3,
+        fz["width_m"]*1e6,
+        fz["depth_m"]*1e6,
+        fz["volume_m3"]*1e9,
+        ev["evaporationPower_W"],
+    )
+)
+PY
+        fi
+    done
+
+    if [ -f vacuumFidelity/V1_kappa/convergence.txt ]; then
+        echo '  convergence:'
+        sed 's/^/    /' vacuumFidelity/V1_kappa/convergence.txt
+    elif [ -f log.Allrun.vacuumKappaConvergence ]; then
+        echo '  latest workflow messages:'
+        tail -12 log.Allrun.vacuumKappaConvergence | sed 's/^/    /'
+    fi
+else
+    echo '  not started'
+fi
+
 echo 'Latest evaporation:'
 if [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]; then
     tail -1 postProcessing/evaporationDiagnostics/evaporation.csv | \
@@ -454,7 +504,7 @@ else
     echo '  no evaporation.csv yet'
 fi
 
-echo 'Vacuum fidelity V0:'
+echo 'Current-case evaporation mass diagnostic:'
 if [ -f postProcessing/evaporationDiagnostics/evaporation.csv ] \
    && [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]; then
     python3 SummarizeVacuumFidelityV0.py 2>/dev/null | sed 's/^/  /' || true
