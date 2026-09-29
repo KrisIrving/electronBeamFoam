@@ -336,3 +336,15 @@ Vacuum Fidelity V1b opened:
 - if the plateau passes, select the largest conductivity inside it (0.001x)
   for numerical robustness and then proceed to V2;
 - execute with `./Run_preflight kappa-limit`.
+
+
+Workflow-launch diagnostics improvement:
+- Run_preflight background validation modes now verify the worker one second
+  after launch;
+- a successful launch prints STARTED plus the current state marker and the
+  monitoring command;
+- an immediately failing worker prints its failure marker and the tail of the
+  workflow log directly to the terminal instead of silently leaving Status on
+  the previous solver log;
+- Status now surfaces the current V1/V1b validation workflow state before the
+  calibration/solver diagnostics.
