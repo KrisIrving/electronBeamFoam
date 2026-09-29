@@ -20,6 +20,16 @@ NPROCS="${NPROCS:-48}"
 MESH_PROFILE="${MESH_PROFILE:-gradedYSmooth}"
 PRESSURE_PROFILE="${PRESSURE_PROFILE:-pcg}"
 PIMPLE_PROFILE="${PIMPLE_PROFILE:-pCorr2}"
+THERMAL_KAPPA_INTERP="${THERMAL_KAPPA_INTERP:-linear}"
+
+case "$THERMAL_KAPPA_INTERP" in
+    linear|harmonic) ;;
+    *)
+        echo "ERROR: unknown THERMAL_KAPPA_INTERP '$THERMAL_KAPPA_INTERP'." >&2
+        echo "Valid values: linear, harmonic" >&2
+        exit 1
+        ;;
+esac
 
 # The accepted engineering baseline on the user's 48-physical-core workstation
 # is simpleXZ. Fall back to Scotch automatically for other MPI sizes unless the
@@ -101,6 +111,7 @@ cp initial/T "$RUN_INPUT_BACKUP/T"
 cp system/fvSolution "$RUN_INPUT_BACKUP/fvSolution"
 cp system/blockMeshDict "$RUN_INPUT_BACKUP/blockMeshDict"
 cp system/decomposeParDict "$RUN_INPUT_BACKUP/decomposeParDict"
+cp system/fvSchemes "$RUN_INPUT_BACKUP/fvSchemes"
 
 restore_run_inputs()
 {
@@ -113,6 +124,7 @@ restore_run_inputs()
     cp "$RUN_INPUT_BACKUP/fvSolution" system/fvSolution
     cp "$RUN_INPUT_BACKUP/blockMeshDict" system/blockMeshDict
     cp "$RUN_INPUT_BACKUP/decomposeParDict" system/decomposeParDict
+    cp "$RUN_INPUT_BACKUP/fvSchemes" system/fvSchemes
     rm -rf "$RUN_INPUT_BACKUP"
 }
 trap restore_run_inputs EXIT INT TERM
@@ -168,10 +180,38 @@ case "$DECOMP_PROFILE" in
 esac
 
 python3 generateCalibrationTrack.py > log.generateTrack 2>&1
+
+python3 - "$THERMAL_KAPPA_INTERP" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+scheme = sys.argv[1]
+path = Path("system/fvSchemes")
+text = path.read_text()
+
+block = re.search(r"(laplacianSchemes\s*\{)(.*?)(\n\})", text, flags=re.S)
+if not block:
+    raise SystemExit("Could not locate laplacianSchemes in system/fvSchemes")
+
+body = block.group(2)
+entry = f"    laplacian(kappa,T) Gauss {scheme} corrected;"
+
+pattern = r"(?m)^\s*laplacian\(kappa,T\)\s+[^;]+;"
+if re.search(pattern, body):
+    body = re.sub(pattern, entry, body, count=1)
+else:
+    body = body.rstrip() + "\n" + entry + "\n"
+
+text = text[:block.start(2)] + body + text[block.end(2):]
+path.write_text(text)
+PY
+
 echo "  mesh profile   = $MESH_PROFILE" >> log.generateTrack
 echo "  pressure prof  = $PRESSURE_PROFILE" >> log.generateTrack
 echo "  PIMPLE profile = $PIMPLE_PROFILE" >> log.generateTrack
 echo "  decomp profile = $DECOMP_PROFILE" >> log.generateTrack
+echo "  thermal k interp = $THERMAL_KAPPA_INTERP" >> log.generateTrack
 
 case "$MESH_PROFILE" in
     uniformFine)
