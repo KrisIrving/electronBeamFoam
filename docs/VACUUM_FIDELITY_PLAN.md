@@ -146,6 +146,75 @@ vacuum limit.
 If it does not pass, do not proceed to V2; revisit the thermal treatment of
 the numerical void explicitly.
 
+## Gate V1b result — REVIEW, no low-k plateau
+
+The completed 0.01x -> 0.001x -> 0.0001x sequence showed that geometry was
+already insensitive, but temperature-sensitive surface physics was not:
+
+- final-decade W/D/L change: 0%;
+- fusion volume: +0.081%;
+- fusion peak temperature: +0.478%;
+- melt Tmax: +0.628%;
+- recoil pressure: +11.535%;
+- evaporation power: +0.573%.
+
+The predeclared Tmax/recoil plateau gate therefore failed. Continuing to reduce
+the cell-centred void conductivity is not justified.
+
+Formal archive:
+`validation/Zakirov2020_vacuumFidelity_V1b.json`.
+
+### Why V1b did not solve the thermal-void problem
+
+The thermal equation currently contains
+
+    -fvm::laplacian(kappa, T)
+
+with cell-centred
+
+    kappa = alpha*k_metal + (1-alpha)*k_void.
+
+The default laplacian scheme is `Gauss linear corrected`. OpenFOAM therefore
+interpolates the cell-centred diffusion coefficient to faces using a linear
+scheme. Even as the pure-void cell value approaches zero, a face connecting an
+interface cell to a void cell can retain a finite diffusion coefficient because
+the interface-cell conductivity still contains a metal fraction.
+
+For a numerical vacuum this is undesirable: the secondary phase must remain
+usable by VOF, but it should not act as an ordinary continuum conductive heat
+sink from the metal free surface.
+
+### Gate V1c — harmonic face conductivity
+
+OpenFOAM provides a harmonic-mean surface interpolation scheme. Test it without
+changing the cell-property model or any physical surface-loss term.
+
+Run:
+
+    ./Run_preflight thermal-face
+
+The controlled 0.5 mm sweep uses harmonic coefficient interpolation for
+`laplacian(kappa,T)` and tests:
+
+- 1x:    k_void = 0.04 W/(m K);
+- 0.1x:  k_void = 0.004 W/(m K);
+- 0.01x: k_void = 0.0004 W/(m K).
+
+The final decade (0.1x -> 0.01x) uses the same plateau criteria as V1b:
+
+- W/D/L <=0.25%;
+- V <=0.5%;
+- Tmax <=0.5%;
+- recoil <=5%;
+- Qevap <=2%;
+- absolute evaporation remains <=0.5% fusion volume and <=1% absorbed power.
+
+The comparison also reports the change from the legacy linear-face 1x case to
+the harmonic-face 1x case. If the harmonic low-k sequence passes, select the
+largest k_void inside the plateau for numerical robustness and then proceed to
+V2. If it fails, isolate the energy formulation further before hydrodynamic
+void-property testing.
+
 ## Gate V2 — numerical-void hydrodynamic regularisation
 
 After V1, independently perturb:
