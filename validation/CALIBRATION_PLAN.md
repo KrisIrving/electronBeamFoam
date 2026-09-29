@@ -313,3 +313,26 @@ Vacuum Fidelity V1 opened:
   absorbed beam power;
 - execute with `./Run_preflight kappa`; compare exact archived summaries in
   `vacuumFidelity/V1_kappa/comparison.txt`.
+
+
+Vacuum Fidelity V1 result:
+- completed 1x / 0.1x / 0.01x numerical-void conductivity sweep;
+- W/D/L were unchanged and fusion volume remained within +0.26%;
+- 0.1x passed the predeclared primary and absolute-evaporation gates;
+- 0.01x preserved geometry but fusion peak temperature changed +1.153%,
+  exceeding the 1% gate; recoil changed +15.99% and final evaporation power
+  changed +3.905%;
+- absolute evaporation remained small at about 0.096% of fusion volume and
+  about 0.4% of absorbed beam power;
+- V1 is therefore REVIEW rather than PASS. Do not advance to rho/nu
+  sensitivity yet.
+
+Vacuum Fidelity V1b opened:
+- extend k_void from the existing 0.01x case to 0.001x and 0.0001x;
+- assess the last decade (0.001x -> 0.0001x) for a low-conductivity plateau;
+- predeclared plateau gate: W/D/L <=0.25%, V <=0.5%, Tmax <=0.5%,
+  recoil <=5%, Qevap <=2%, while absolute evaporation remains <=0.5%
+  fusion volume and <=1% absorbed power;
+- if the plateau passes, select the largest conductivity inside it (0.001x)
+  for numerical robustness and then proceed to V2;
+- execute with `./Run_preflight kappa-limit`.
