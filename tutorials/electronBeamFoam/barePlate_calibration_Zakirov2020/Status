@@ -29,60 +29,270 @@ grep 'ExecutionTime = ' "$LOG" | tail -1 || true
 printf 'Latest deltaT         : '
 grep 'deltaT = ' "$LOG" | tail -1 || true
 
-echo 'Recent simulation throughput:'
+echo 'Progress / ETA:'
 python3 - "$LOG" <<'PY' || true
+import math
+import os
 import re
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 log = Path(sys.argv[1])
+case = Path(".")
+
+number = r"([0-9.eE+-]+)"
+
+def generated_target():
+    p = case / "log.generateTrack"
+    if p.is_file():
+        text = p.read_text(errors="replace")
+
+        m = re.search(
+            rf"^\s*end time\s*=\s*{number}\s*s\s*$",
+            text,
+            flags=re.M,
+        )
+        if m:
+            return float(m.group(1)), "log.generateTrack:end time"
+
+        m_scan = re.search(
+            rf"^\s*scan time\s*=\s*{number}\s*s\s*$",
+            text,
+            flags=re.M,
+        )
+        if m_scan:
+            scan = float(m_scan.group(1))
+            m_cool = re.search(
+                rf"^\s*cool time\s*=\s*{number}\s*s\s*$",
+                text,
+                flags=re.M,
+            )
+            cool = float(m_cool.group(1)) if m_cool else 0.0
+            return scan + cool, "log.generateTrack:scan+cool"
+
+    p = case / "system" / "controlDict"
+    if p.is_file():
+        text = p.read_text(errors="replace")
+        m = re.search(
+            rf"^\s*endTime\s+{number}\s*;",
+            text,
+            flags=re.M,
+        )
+        if m:
+            return float(m.group(1)), "system/controlDict"
+
+    return None, "unavailable"
+
+def fmt_duration(seconds):
+    if not math.isfinite(seconds) or seconds < 0:
+        return "unavailable"
+
+    seconds = int(round(seconds))
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, secs = divmod(rem, 60)
+
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if days or hours:
+        parts.append(f"{hours}h")
+    if days or hours or minutes:
+        parts.append(f"{minutes}m")
+    if not parts:
+        parts.append(f"{secs}s")
+    return " ".join(parts)
+
 time_re = re.compile(r"^\s*Time = ([0-9.eE+-]+)")
 timing_re = re.compile(
     r"^ExecutionTime = ([0-9.eE+-]+) s\s+ClockTime = ([0-9.eE+-]+) s"
 )
+
 pairs = []
 cur_t = None
+ended = False
+
 with log.open(errors="replace") as f:
     for line in f:
+        if line.strip() == "End":
+            ended = True
+
         m = time_re.match(line)
         if m:
             cur_t = float(m.group(1))
             continue
+
         m = timing_re.match(line)
         if m and cur_t is not None:
-            pairs.append((cur_t, float(m.group(1)), float(m.group(2))))
+            pairs.append(
+                (
+                    cur_t,
+                    float(m.group(1)),
+                    float(m.group(2)),
+                )
+            )
 
-if len(pairs) < 2:
+target, target_source = generated_target()
+
+if not pairs:
     print("  insufficient completed time-step samples")
 else:
-    def report(label, seq):
+    # A restarted electronBeamFoam process resets ExecutionTime/ClockTime.
+    # Split the concatenated solver log and estimate current throughput only
+    # from the latest monotonic timing segment.
+    segments = [[]]
+    prev_cpu = None
+    prev_wall = None
+
+    for item in pairs:
+        _, cpu, wall = item
+
+        if (
+            segments[-1]
+            and
+            (
+                (prev_cpu is not None and cpu + 1e-9 < prev_cpu)
+                or (prev_wall is not None and wall + 1e-9 < prev_wall)
+            )
+        ):
+            segments.append([])
+
+        segments[-1].append(item)
+        prev_cpu = cpu
+        prev_wall = wall
+
+    current = segments[-1]
+    latest_t = pairs[-1][0]
+
+    def rate(seq):
+        if len(seq) < 2:
+            return None
+
         t0, cpu0, wall0 = seq[0]
         t1, cpu1, wall1 = seq[-1]
+
         ds_us = (t1 - t0)*1e6
         dcpu = cpu1 - cpu0
         dwall = wall1 - wall0
+
         if ds_us <= 0 or dwall <= 0:
-            print(f"  {label}: unavailable")
-            return
+            return None
 
-        wall_sec_per_us = dwall/ds_us
-        sim_us_per_wall_hr = 3600.0/wall_sec_per_us
-        eta_hr = max(0.0, (1.0e-3 - t1)*1e6*wall_sec_per_us/3600.0)
+        return {
+            "wall_s_per_us": dwall/ds_us,
+            "sim_us_per_wall_h": 3600.0/(dwall/ds_us),
+            "cpu_s_per_us": dcpu/ds_us if dcpu > 0 else float("nan"),
+            "cpu_wall": dcpu/dwall if dcpu > 0 else float("nan"),
+            "wall_span_s": dwall,
+            "sim_span_us": ds_us,
+        }
 
-        cpu_sec_per_us = dcpu/ds_us if dcpu > 0 else float("nan")
-        cpu_wall_ratio = dcpu/dwall if dcpu > 0 else float("nan")
+    def recent_wall_window(seq, requested_wall_s):
+        if len(seq) < 2:
+            return seq
+
+        last_wall = seq[-1][2]
+        threshold = last_wall - requested_wall_s
+        first = 0
+
+        for i in range(len(seq) - 1, -1, -1):
+            if seq[i][2] <= threshold:
+                first = i
+                break
+
+        return seq[first:]
+
+    local_seq = recent_wall_window(current, 15*60.0)
+    local_rate = rate(local_seq)
+    segment_rate = rate(current)
+
+    if target is not None and target > 0:
+        remaining_s = max(target - latest_t, 0.0)
+        progress = min(max(latest_t/target, 0.0), 1.0)
 
         print(
-            f"  {label}: {wall_sec_per_us:.2f} wall-s/sim-us  "
-            f"({sim_us_per_wall_hr:.2f} sim-us/wall-h), ETA~{eta_hr:.1f} h"
+            f"  target physical end = {target:.12g} s "
+            f"({target_source})"
         )
         print(
-            f"    master CPU: {cpu_sec_per_us:.2f} cpu-s/sim-us, "
-            f"CPU/Clock={cpu_wall_ratio:.3f}"
+            f"  physical progress    = {100.0*progress:.2f}%  "
+            f"({latest_t*1e6:.3f} / {target*1e6:.3f} sim-us)"
+        )
+    else:
+        remaining_s = None
+        print("  target physical end = unavailable")
+
+    if local_rate:
+        span_min = local_rate["wall_span_s"]/60.0
+        print(
+            f"  current pace         = "
+            f"{local_rate['wall_s_per_us']:.2f} wall-s/sim-us  "
+            f"({local_rate['sim_us_per_wall_h']:.2f} sim-us/wall-h)"
+        )
+        print(
+            f"    window             = last {span_min:.1f} wall-min, "
+            f"{local_rate['sim_span_us']:.3f} sim-us"
+        )
+        print(
+            f"    master CPU         = "
+            f"{local_rate['cpu_s_per_us']:.2f} cpu-s/sim-us, "
+            f"CPU/Clock={local_rate['cpu_wall']:.3f}"
         )
 
-    report("recent 200 steps", pairs[-200:])
-    report("since resume log", pairs)
+    if segment_rate:
+        print(
+            f"  current solver avg   = "
+            f"{segment_rate['wall_s_per_us']:.2f} wall-s/sim-us  "
+            f"({segment_rate['sim_us_per_wall_h']:.2f} sim-us/wall-h)"
+        )
+
+    finished = (
+        target is not None
+        and
+        (
+            latest_t >= target - max(1e-12, 1e-7*abs(target))
+            or ended
+        )
+    )
+
+    if finished:
+        print("  ETA to case end      = COMPLETE")
+    elif remaining_s is not None:
+        primary = local_rate or segment_rate
+
+        if primary:
+            eta_seconds = remaining_s*1e6*primary["wall_s_per_us"]
+            finish = datetime.now() + timedelta(seconds=eta_seconds)
+
+            print(
+                f"  ETA to case end      = ~{fmt_duration(eta_seconds)}"
+            )
+            print(
+                f"  projected finish     = ~{finish.strftime('%Y-%m-%d %H:%M')}"
+            )
+
+            # A longer-window estimate gives context when the current melt-pool
+            # workload is changing quickly. Only show it when it differs
+            # meaningfully from the local estimate.
+            if (
+                local_rate
+                and segment_rate
+                and segment_rate["wall_s_per_us"] > 0
+            ):
+                eta_segment = (
+                    remaining_s*1e6*segment_rate["wall_s_per_us"]
+                )
+                rel = abs(eta_segment - eta_seconds)/(eta_seconds + 1e-30)
+
+                if rel >= 0.10:
+                    print(
+                        f"  segment-average ETA  = "
+                        f"~{fmt_duration(eta_segment)} "
+                        f"(pace is changing)"
+                    )
+        else:
+            print("  ETA to case end      = unavailable")
 PY
 # Legacy centralFirstHit distance is intentionally omitted here. For the
 # current multiRayFirstHit model, the mean/min/max first-hit diagnostics below
