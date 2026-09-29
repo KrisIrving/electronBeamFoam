@@ -22,8 +22,23 @@ case "$MODE" in
         AUTO_RECONSTRUCT=0 \
         ./Run_background
         ;;
+    kappa|kappa-sweep|vacuum-kappa)
+        if [ -f run.pid ]; then
+            OLD_PID="$(cat run.pid 2>/dev/null || true)"
+            if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+                echo "ERROR: run.pid points to a live process $OLD_PID." >&2
+                echo "Use ./Status instead of launching another run." >&2
+                exit 2
+            fi
+        fi
+
+        nohup bash ./Allrun_vacuumKappaSweep \
+            > log.Allrun.vacuumKappaSweep 2>&1 &
+        echo $! > run.pid
+        echo "Started Vacuum Fidelity V1 kappa sweep PID $(cat run.pid)"
+        ;;
     *)
-        echo "Usage: $0 [preflight|vacuum]" >&2
+        echo "Usage: $0 [preflight|vacuum|kappa]" >&2
         exit 2
         ;;
 esac
