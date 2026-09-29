@@ -15,7 +15,7 @@ Defaults reproduce the first calibration target selected in validation/:
 Environment overrides:
   PREHEAT_K, BEAM_POWER, SCAN_SPEED, X_START, X_END, BEAM_Y, BEAM_Z,
   ABSORPTIVITY, BEAM_RADIUS, PENETRATION_DEPTH, MAX_PENETRATION_DEPTH,
-  COOL_TIME, WRITE_INTERVAL.
+  COOL_TIME, WRITE_INTERVAL, VOID_KAPPA_SCALE.
 
 Tracked dictionaries are restored by Allrun_parallel after the run.
 """
@@ -58,6 +58,7 @@ write_requested = "WRITE_INTERVAL" in os.environ
 write_interval = env_float("WRITE_INTERVAL", 1.0e-4)
 epsilon_tolerance = env_float("EPSILON_TOLERANCE", 1.0e-3)
 max_temp_corrector = int(env_float("MAX_TEMP_CORRECTOR", 20))
+void_kappa_scale = env_float("VOID_KAPPA_SCALE", 1.0)
 
 for name, value in (
     ("PREHEAT_K", preheat),
@@ -76,6 +77,8 @@ for name, value in (
 
 if max_temp_corrector < 1:
     raise SystemExit("MAX_TEMP_CORRECTOR must be >= 1")
+if void_kappa_scale <= 0:
+    raise SystemExit("VOID_KAPPA_SCALE must be > 0")
 if not (0 < absorptivity <= 1):
     raise SystemExit("ABSORPTIVITY must be in (0,1]")
 if x_start == x_end:
@@ -134,6 +137,39 @@ transport_text, n = re.subn(
 )
 if n != 1:
     raise SystemExit("Could not update TRef")
+
+# V1 numerical-void thermal-transport sensitivity. Scale the complete gas
+# conductivity polynomial, not merely its constant coefficient, so this remains
+# correct if a temperature-dependent void regularisation is introduced later.
+gas_match = re.search(r"(\bgas\s*\{)(.*?)(\n\})", transport_text, flags=re.S)
+if not gas_match:
+    raise SystemExit("Could not locate gas sub-dictionary")
+
+gas_body = gas_match.group(2)
+kappa_match = re.search(r"(\bpoly_kappa\s*\()([^)]*)(\)\s*;)", gas_body)
+if not kappa_match:
+    raise SystemExit("Could not locate gas poly_kappa")
+
+try:
+    gas_kappa_coeffs = [float(v) for v in kappa_match.group(2).split()]
+except ValueError as exc:
+    raise SystemExit(f"Could not parse gas poly_kappa: {exc}")
+
+if not gas_kappa_coeffs:
+    raise SystemExit("gas poly_kappa has no coefficients")
+
+scaled_gas_kappa = [void_kappa_scale*v for v in gas_kappa_coeffs]
+scaled_text = " ".join(f"{v:.12g}" for v in scaled_gas_kappa)
+gas_body = (
+    gas_body[:kappa_match.start(2)]
+    + scaled_text
+    + gas_body[kappa_match.end(2):]
+)
+transport_text = (
+    transport_text[:gas_match.start(2)]
+    + gas_body
+    + transport_text[gas_match.end(2):]
+)
 transport_props.write_text(transport_text)
 
 t_text = initial_t.read_text()
@@ -202,6 +238,8 @@ print(f"  line energy    = {line_energy:.9g} J/m")
 print(f"  absorptivity   = {absorptivity:.9g}")
 print(f"  beam radius    = {beam_radius:.9g} m")
 print(f"  penetration    = {penetration:.9g} m")
+print(f"  void k scale   = {void_kappa_scale:.9g}")
+print(f"  void k(T=0)    = {scaled_gas_kappa[0]:.9g} W/(m K)")
 print(f"  epsilon tol    = {epsilon_tolerance:.9g}")
 print(f"  max T corr     = {max_temp_corrector}")
 print(f"  beam seed      = ({x_start:.9g}, {beam_y:.9g}, {beam_z:.9g}) m")
