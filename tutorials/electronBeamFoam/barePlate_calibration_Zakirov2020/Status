@@ -520,6 +520,57 @@ else
     echo '  not started'
 fi
 
+echo 'Vacuum Fidelity V1c harmonic-face conductivity:'
+if [ -f vacuum-kappa-harmonic-state.txt ]; then
+    sed 's/^/  /' vacuum-kappa-harmonic-state.txt
+
+    if [ -f vacuum-kappa-harmonic-failure.txt ]; then
+        echo '  failure:'
+        sed 's/^/    /' vacuum-kappa-harmonic-failure.txt
+    fi
+
+    for KCASE in h1 h0p1 h0p01; do
+        if [ -f "vacuumFidelity/V1c_harmonic/$KCASE/summary.json" ]; then
+            python3 - "$KCASE" <<'PY' || true
+import json
+import sys
+from pathlib import Path
+
+label=sys.argv[1]
+p=Path("vacuumFidelity/V1c_harmonic")/label/"summary.json"
+d=json.loads(p.read_text())
+fz=d["fusion_zone"]
+mp=d["melt_pool"]
+ev=d["evaporation"]
+print(
+    "  {}: scale={} interp={} Tmax={:.2f} K recoil={:.3f} kPa "
+    "W={:.3f} um D={:.3f} um V={:.6f} mm^3 Qevap={:.3f} W".format(
+        label,
+        d["void_kappa_scale"],
+        d.get("thermal_kappa_interpolation","unknown"),
+        mp["Tmax_K"],
+        mp["recoilMax_Pa"]/1e3,
+        fz["width_m"]*1e6,
+        fz["depth_m"]*1e6,
+        fz["volume_m3"]*1e9,
+        ev["evaporationPower_W"],
+    )
+)
+PY
+        fi
+    done
+
+    if [ -f vacuumFidelity/V1c_harmonic/comparison.txt ]; then
+        echo '  comparison:'
+        sed 's/^/    /' vacuumFidelity/V1c_harmonic/comparison.txt
+    elif [ -f log.Allrun.vacuumKappaHarmonic ]; then
+        echo '  latest workflow messages:'
+        tail -12 log.Allrun.vacuumKappaHarmonic | sed 's/^/    /'
+    fi
+else
+    echo '  not started'
+fi
+
 echo 'Latest evaporation:'
 if [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]; then
     tail -1 postProcessing/evaporationDiagnostics/evaporation.csv | \
