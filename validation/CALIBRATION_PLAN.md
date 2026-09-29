@@ -258,3 +258,19 @@ Vacuum Fidelity Verification opened:
 - use the V0 result to decide whether explicit evaporative mass transfer is
   physically required before proceeding to numerical-void k/rho/nu
   sensitivities.
+
+
+Status ETA monitoring update:
+- removed the hard-coded 1.0 ms ETA target;
+- generateCalibrationTrack now records cool time and the exact generated
+  physical end time in log.generateTrack;
+- Status resolves the target from the generated case metadata, so 0.5 mm,
+  1 mm, 3 mm and arbitrary scan-speed cases are handled automatically;
+- current ETA uses a recent ~15 minute wall-clock throughput window rather
+  than a fixed number of CFD steps;
+- concatenated restart logs are split when OpenFOAM ExecutionTime/ClockTime
+  resets, preventing invalid cross-restart throughput estimates;
+- Status now reports physical progress, current local pace, current solver
+  segment average, ETA to the case end and projected local finish time; a
+  second segment-average ETA is shown when the workload is changing by enough
+  to move the estimate by at least 10%.
