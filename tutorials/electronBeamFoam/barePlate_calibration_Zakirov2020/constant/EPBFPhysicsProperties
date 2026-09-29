@@ -18,6 +18,13 @@ vacuumModel     numericalVoid;
 radiation       true;
 evaporation     true;
 recoilPressure  true;
+
+// Diagnostic only: convert the existing evaporation latent-heat sink into the
+// implied mass loss without yet modifying alpha.metal or the continuity
+// equation. The cumulative field is restart/AMR aware.
+evaporationDiagnostics         true;
+evaporationDiagnosticsWriteCSV true;
+evaporationDiagnosticsCsvFile  evaporation.csv;
 marangoni       true;
 surfaceTension  true;
 gravity         true;
