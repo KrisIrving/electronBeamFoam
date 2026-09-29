@@ -229,6 +229,9 @@ mpirun "${MPI_ARGS[@]}" -np "$NPROCS" electronBeamFoam -parallel \
 python3 CompareExperiment.py > calibration-comparison.txt 2>&1 || true
 python3 CompareSections.py > section-comparison.txt 2>&1 || true
 python3 CompareExperimentSections.py > section-experiment-comparison.txt 2>&1 || true
+if [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]; then
+    python3 SummarizeVacuumFidelityV0.py > vacuum-fidelity-v0.txt 2>&1 || true
+fi
 
 # Reconstruct dynamic mesh + fields after a successful solver run.
 # Set AUTO_RECONSTRUCT=0 to keep the decomposed result only.
