@@ -26,14 +26,18 @@ write_state()
         echo "stage=$CURRENT_STAGE"
         echo "timestamp=$(date -Is)"
         echo "worker_pid=${BASHPID}"
-        [ -n "${CURRENT_LABEL:-}" ] && echo "case=$CURRENT_LABEL"
-        [ -n "${CURRENT_SCALE:-}" ] && echo "void_kappa_scale=$CURRENT_SCALE"
+        if [ -n "${CURRENT_LABEL:-}" ]; then
+            echo "case=$CURRENT_LABEL"
+        fi
+        if [ -n "${CURRENT_SCALE:-}" ]; then
+            echo "void_kappa_scale=$CURRENT_SCALE"
+        fi
     } > "$STATE"
 }
 
 on_exit()
 {
-    rc=$?
+    local rc=$?
     if [ "$rc" -ne 0 ]; then
         {
             echo "status=failed"
@@ -47,6 +51,7 @@ on_exit()
         rm -f "$FAILURE"
     fi
 }
+
 trap on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -57,13 +62,17 @@ write_state preflight
 
 archive_current()
 {
-    label="$1"
-    scale="$2"
-    out="$ROOT/$label"
+    local label="$1"
+    local scale="$2"
+    local out="$ROOT/$label"
+
     rm -rf "$out"
     mkdir -p "$out"
 
-    python3 SummarizeVacuumKappaCase.py         --label "$label"         --scale "$scale"         > "$out/summary.json"
+    python3 SummarizeVacuumKappaCase.py \
+        --label "$label" \
+        --scale "$scale" \
+        > "$out/summary.json"
 
     cp log.generateTrack "$out/log.generateTrack"
     cp log.electronBeamFoam "$out/log.electronBeamFoam"
@@ -72,42 +81,26 @@ archive_current()
     cp postProcessing/evaporationDiagnostics/evaporation.csv "$out/evaporation.csv"
 }
 
-# V1b needs the completed 0.01x point as its convergence anchor. Normally
-# this is already archived by the V1 sweep. If the local archive was removed
-# while the completed 0.01x case is still present in the working directory,
-# rebuild the archive automatically instead of failing silently.
+echo "V1b preflight: checking 0.01x convergence anchor..."
+
+# V1b needs the completed 0.01x point as its convergence anchor. Normally this
+# archive is created by V1. If it is missing but the current working directory
+# still contains the completed 0.01x run, rebuild it automatically.
 if [ ! -f "$ROOT/k0p01/summary.json" ]; then
     echo "V1 k0p01 archive is missing; checking current completed case..."
 
     CURRENT_SCALE_IN_LOG="$(
-        awk -F'= ' '/^[[:space:]]*void k scale[[:space:]]*=/{print $2}'             log.generateTrack 2>/dev/null | tail -1 | awk '{print $1}'
+        awk -F'= ' '/^[[:space:]]*void k scale[[:space:]]*=/{print $2}' \
+            log.generateTrack 2>/dev/null \
+        | tail -1 \
+        | awk '{print $1}'
     )"
 
-    if [ "$CURRENT_SCALE_IN_LOG" = "0.01" ]        && [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ]        && [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]        && [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]        && grep -q '^End    label="$1"
-    scale="$2"
-    CURRENT_LABEL="$label"
-    CURRENT_SCALE="$scale"
-    write_state "run_$label"
-
-    X_START=-0.00025     X_END=0.00025     VOID_KAPPA_SCALE="$scale"     DECOMP_PROFILE=simpleXZ     AUTO_RECONSTRUCT=0     ./Allrun_parallel
-
-    write_state "archive_$label"
-    archive_current "$label" "$scale"
-}
-
-run_candidate k0p001 0.001
-run_candidate k0p0001 0.0001
-
-CURRENT_LABEL=""
-CURRENT_SCALE=""
-write_state compare
-python3 CompareVacuumKappaConvergence.py > "$ROOT/convergence.txt"
-
-write_state complete
-
-echo "Vacuum Fidelity V1b low-k convergence extension completed."
-echo "See: $ROOT/convergence.txt"
- log.electronBeamFoam 2>/dev/null; then
+    if [ "$CURRENT_SCALE_IN_LOG" = "0.01" ] \
+       && [ -f postProcessing/meltPoolDiagnostics/fusionZone.csv ] \
+       && [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ] \
+       && [ -f postProcessing/evaporationDiagnostics/evaporation.csv ] \
+       && grep -q '^End$' log.electronBeamFoam 2>/dev/null; then
 
         echo "Current working case is a completed 0.01x run; rebuilding archive."
         CURRENT_LABEL="k0p01"
@@ -127,17 +120,28 @@ echo "See: $ROOT/convergence.txt"
     fi
 fi
 
+echo "V1b preflight: 0.01x anchor ready."
+
 run_candidate()
 {
-    label="$1"
-    scale="$2"
+    local label="$1"
+    local scale="$2"
+
     CURRENT_LABEL="$label"
     CURRENT_SCALE="$scale"
     write_state "run_$label"
 
-    X_START=-0.00025     X_END=0.00025     VOID_KAPPA_SCALE="$scale"     DECOMP_PROFILE=simpleXZ     AUTO_RECONSTRUCT=0     ./Allrun_parallel
+    echo "Starting V1b candidate $label (void k scale=$scale)..."
+
+    X_START=-0.00025 \
+    X_END=0.00025 \
+    VOID_KAPPA_SCALE="$scale" \
+    DECOMP_PROFILE=simpleXZ \
+    AUTO_RECONSTRUCT=0 \
+    ./Allrun_parallel
 
     write_state "archive_$label"
+    echo "Archiving V1b candidate $label..."
     archive_current "$label" "$scale"
 }
 
@@ -147,6 +151,8 @@ run_candidate k0p0001 0.0001
 CURRENT_LABEL=""
 CURRENT_SCALE=""
 write_state compare
+
+echo "Comparing V1b low-k convergence..."
 python3 CompareVacuumKappaConvergence.py > "$ROOT/convergence.txt"
 
 write_state complete
