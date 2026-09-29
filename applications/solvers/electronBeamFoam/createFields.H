@@ -216,6 +216,33 @@ const Switch epbfElectromagneticsEnabled
     epbfPhysicsProperties.lookupOrDefault<Switch>("electromagnetics", false)
 );
 
+const Switch evaporationDiagnosticsEnabled
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>
+    (
+        "evaporationDiagnostics",
+        true
+    )
+);
+
+const Switch evaporationDiagnosticsWriteCsv
+(
+    epbfPhysicsProperties.lookupOrDefault<Switch>
+    (
+        "evaporationDiagnosticsWriteCSV",
+        true
+    )
+);
+
+const fileName evaporationDiagnosticsCsvFile
+(
+    epbfPhysicsProperties.lookupOrDefault<fileName>
+    (
+        "evaporationDiagnosticsCsvFile",
+        "evaporation.csv"
+    )
+);
+
 const scalar radiationScale = radiationEnabled ? 1.0 : 0.0;
 const scalar evaporationScale = evaporationEnabled ? 1.0 : 0.0;
 const scalar recoilPressureScale = recoilPressureEnabled ? 1.0 : 0.0;
@@ -230,7 +257,8 @@ Info<< "EPBF physics configuration" << nl
     << "    Marangoni             = " << marangoniEnabled << nl
     << "    gravity               = " << gravityEnabled << nl
     << "    surfaceTension        = " << surfaceTensionEnabled << nl
-    << "    electromagnetics      = " << epbfElectromagneticsEnabled
+    << "    electromagnetics      = " << epbfElectromagneticsEnabled << nl
+    << "    evaporation diag      = " << evaporationDiagnosticsEnabled
     << endl;
 
 // -------------------------------------------------------------------------
@@ -977,6 +1005,29 @@ volScalarField Qv
     ),
     mesh,
     dimensionedScalar("0", dimensionSet(1,0,-3,0,0,0,0), 0.0)
+);
+
+// Diagnostic-only accumulated mass density implied by the evaporation cooling
+// already applied in TEqn. This field does NOT remove metal mass. Registering
+// and writing it makes the integral restart-safe and lets dynamicRefineFvMesh
+// map the cumulative history through topology changes.
+volScalarField cumulativeEvaporatedMassDensity
+(
+    IOobject
+    (
+        "cumulativeEvaporatedMassDensity",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar
+    (
+        "zero",
+        dimensionSet(1, -3, 0, 0, 0, 0, 0),
+        0.0
+    )
 );
 
 
