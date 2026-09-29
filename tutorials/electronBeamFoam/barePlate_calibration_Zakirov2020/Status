@@ -190,6 +190,20 @@ else
     echo '  not started'
 fi
 
+echo 'Latest evaporation:'
+if [ -f postProcessing/evaporationDiagnostics/evaporation.csv ]; then
+    tail -1 postProcessing/evaporationDiagnostics/evaporation.csv | \
+    awk -F',' '
+    {
+        printf "  mdot = %.6e kg/s   cumulative = %.6e kg\n", $2, $3;
+        printf "  Veq  = %.6e m^3    Qevap = %.3f W\n", $4, $5;
+        printf "  max flux = %.6e kg/m^2/s   max recession = %.6e m/s\n", $6, $7;
+        printf "  interface area = %.6e m^2\n", $8;
+    }'
+else
+    echo '  no evaporation.csv yet'
+fi
+
 echo 'Latest melt-pool:'
 if [ -f postProcessing/meltPoolDiagnostics/meltPool.csv ]; then
     tail -1 postProcessing/meltPoolDiagnostics/meltPool.csv | \
