@@ -1,9 +1,29 @@
 #!/bin/bash
 set -euo pipefail
 
-# Cheap geometry/source preflight only. It is NOT the final experimental
-# comparison because the track is shortened from 3.0 mm to 0.5 mm.
-X_START=-0.00025 \
-X_END=0.00025 \
-AUTO_RECONSTRUCT=0 \
-./Run_background
+MODE="${1:-preflight}"
+
+case "$MODE" in
+    preflight)
+        # Cheap geometry/source preflight only. It is NOT the final
+        # experimental comparison because the track is shortened to 0.5 mm.
+        X_START=-0.00025 \
+        X_END=0.00025 \
+        AUTO_RECONSTRUCT=0 \
+        ./Run_background
+        ;;
+    vacuum|vacuum-fidelity)
+        # Vacuum-fidelity V0 baseline: same 0.5 mm trajectory, but force the
+        # accepted 48-rank simpleXZ engineering decomposition. The calibration
+        # EPBFPhysicsProperties enables the evaporation mass diagnostics.
+        X_START=-0.00025 \
+        X_END=0.00025 \
+        DECOMP_PROFILE=simpleXZ \
+        AUTO_RECONSTRUCT=0 \
+        ./Run_background
+        ;;
+    *)
+        echo "Usage: $0 [preflight|vacuum]" >&2
+        exit 2
+        ;;
+esac
